@@ -137,14 +137,14 @@ class KeyboardActivity:
                 window_title = self.window_detector.get_active_window_title()
                 logger.debug(f"Active window: {window_title}")
                 
-                if not any(editor in window_title.lower() for editor in ['vscode', 'code', 'visual studio', 'notepad', 'sublime', 'atom', 'vim', 'pycharm']):
-                    logger.warning(f"Not in code editor window: {window_title}, skipping typing")
-                    return False
+                # Check if in code editor (but don't fail if detection doesn't work)
+                if window_title and not any(editor in window_title.lower() for editor in ['vscode', 'code', 'visual studio', 'notepad', 'sublime', 'atom', 'vim', 'pycharm']):
+                    logger.info(f"Window '{window_title}' may not be a code editor, but typing anyway")
                 
                 file_ext = self.window_detector.detect_file_extension()
                 logger.debug(f"Detected file extension: {file_ext}")
             except Exception as e:
-                logger.warning(f"Window detection failed: {e}, using .py default")
+                logger.debug(f"Window detection failed: {e}, proceeding with .py default")
                 file_ext = ".py"
             
             # Prefer end of file to avoid destroying code
@@ -217,7 +217,7 @@ class KeyboardActivity:
                 line_pause = (0.5, 1.2)  # Longer thinking pauses
 
             # Split snippet into lines and type line by line (like a real developer)
-            lines = snippet_safe.split('\\n')
+            lines = snippet_safe.split('\n')
             for line_idx, line in enumerate(lines):
                 # Check if user has paused before each line
                 if daemon_instance and daemon_instance.paused:
@@ -262,7 +262,7 @@ class KeyboardActivity:
                     extra_snippet = self.snippet_generator.get_snippet(file_ext)
                     
                     # Type the extra snippet line by line too
-                    extra_lines = extra_snippet.split('\\n')
+                    extra_lines = extra_snippet.split('\n')
                     for line_idx, line in enumerate(extra_lines):
                         for char in line:
                             self.injector.type_text(char, delay=np.random.uniform(0.03, 0.07))
