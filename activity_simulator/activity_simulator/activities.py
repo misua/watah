@@ -6,6 +6,7 @@ import time
 import logging
 from typing import Tuple, List, Optional
 from .win32_input import Win32InputInjector, VK_CODES
+from .code_snippets import CodeSnippetGenerator, WindowDetector
 
 logger = logging.getLogger(__name__)
 
@@ -113,47 +114,24 @@ class KeyboardActivity:
 
     def __init__(self, injector: Win32InputInjector):
         self.injector = injector
+        self.snippet_generator = CodeSnippetGenerator()
+        self.window_detector = WindowDetector()
 
     def type_random_text(self, length: int = None) -> bool:
-        """Type random text"""
-        if length is None:
-            length = np.random.randint(5, 20)
-
-        words = [
-            "the",
-            "be",
-            "to",
-            "of",
-            "and",
-            "a",
-            "in",
-            "that",
-            "have",
-            "it",
-            "for",
-            "not",
-            "on",
-            "with",
-            "as",
-            "you",
-            "do",
-            "at",
-            "this",
-            "but",
-            "by",
-            "from",
-        ]
-
-        text_words = np.random.choice(words, size=np.random.randint(3, 8))
-        text = " ".join(text_words)
-
+        """Type context-aware code snippet"""
         try:
-            for char in text:
+            file_ext = self.window_detector.detect_file_extension()
+            snippet = self.snippet_generator.get_snippet(file_ext)
+
+            for char in snippet:
                 self.injector.type_text(char, delay=np.random.uniform(0.05, 0.15))
                 if np.random.random() < 0.1:
                     time.sleep(np.random.uniform(0.3, 0.8))
+            
+            self.injector.press_key(VK_CODES["enter"])
+            time.sleep(np.random.uniform(0.2, 0.5))
 
-            logger.debug(f"Typed text: {text}")
+            logger.debug(f"Typed snippet ({file_ext}): {snippet}")
             return True
         except Exception as e:
             logger.error(f"Failed to type text: {e}")

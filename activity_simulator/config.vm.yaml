@@ -4,26 +4,26 @@ daemon:
   log_level: DEBUG
 
 timing:
-  base_interval: 30
+  base_interval: 15
   intensity: high
   enable_circadian: false
 
 activities:
   mouse_movement:
     enabled: true
-    weight: 0.3
+    weight: 0.25
   mouse_scroll:
     enabled: true
-    weight: 0.25
+    weight: 0.2
   keyboard_navigation:
     enabled: true
     weight: 0.15
   keyboard_typing:
     enabled: true
-    weight: 0.1
+    weight: 0.25
   tab_switching:
     enabled: true
-    weight: 0.1
+    weight: 0.05
   composite_workflows:
     enabled: true
     weight: 0.1
