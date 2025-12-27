@@ -1,0 +1,41 @@
+daemon:
+  pid_file: activity_sim.pid
+  log_file: activity_sim.log
+  log_level: INFO
+
+timing:
+  base_interval: 180
+  intensity: medium
+  enable_circadian: true
+
+activities:
+  mouse_movement:
+    enabled: true
+    weight: 0.3
+  mouse_scroll:
+    enabled: true
+    weight: 0.25
+  keyboard_navigation:
+    enabled: true
+    weight: 0.15
+  keyboard_typing:
+    enabled: true
+    weight: 0.1
+  tab_switching:
+    enabled: true
+    weight: 0.1
+  composite_workflows:
+    enabled: true
+    weight: 0.1
+
+safety:
+  pause_on_user_input: false
+  pause_duration: 30
+  emergency_stop_hotkey: ctrl+alt+q
+  safe_zone: current_screen
+
+anti_detection:
+  enable_monitoring_detection: true
+  detection_interval: 300
+  adaptive_behavior: true
+  entropy_injection: true

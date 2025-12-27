@@ -43,7 +43,8 @@ class ActivityDaemon:
         self.last_monitoring_check = time.time()
 
         self.user_input_listener = None
-        if config.get("safety.pause_on_user_input", True):
+        self.pause_on_input_enabled = config.get("safety.pause_on_user_input", True)
+        if self.pause_on_input_enabled:
             self._setup_user_input_detection()
 
     def _build_activity_weights(self):
@@ -94,7 +95,7 @@ class ActivityDaemon:
 
     def _check_resume(self):
         """Check if should resume after user input"""
-        if self.paused:
+        if self.paused and self.pause_on_input_enabled:
             elapsed = time.time() - self.last_user_input
             if elapsed >= self.pause_duration:
                 self.paused = False
