@@ -167,6 +167,17 @@ class ActivityDaemon:
         logger.info("Activity simulator daemon started")
 
         last_activity_time = time.time()
+        state = self.behavioral_model.get_current_state()
+        next_interval = self.timing.get_next_interval(state)
+        
+        if self.monitor_detector.is_adaptive_mode():
+            next_interval *= self.monitor_detector.get_adaptive_multiplier()
+        
+        if self.config.get("timing.enable_circadian", True):
+            circadian_mult = self.timing.get_circadian_multiplier()
+            next_interval *= circadian_mult
+        
+        logger.info(f"First activity scheduled in {next_interval:.1f} seconds")
 
         while self.running:
             try:
@@ -181,27 +192,27 @@ class ActivityDaemon:
                 current_time = time.time()
                 elapsed_since_activity = current_time - last_activity_time
 
-                state = self.behavioral_model.get_current_state()
-                interval = self.timing.get_next_interval(state)
-
-                if self.monitor_detector.is_adaptive_mode():
-                    interval *= self.monitor_detector.get_adaptive_multiplier()
-
-                circadian_mult = self.timing.get_circadian_multiplier()
-                interval *= circadian_mult
-
-                if elapsed_since_activity >= interval:
+                if elapsed_since_activity >= next_interval:
+                    state = self.behavioral_model.get_current_state()
                     activity_name = self._select_activity()
                     if activity_name:
-                        logger.info(f"Executing activity: {activity_name} (state: {state})")
+                        logger.info(f"Executing activity: {activity_name} (state: {state}, interval was: {next_interval:.1f}s)")
                         success = self._execute_activity(activity_name)
 
                         if success:
                             pause = self.timing.get_pause_duration(activity_name)
                             time.sleep(pause)
 
-                        last_activity_time = current_time
+                        last_activity_time = time.time()
                         self.behavioral_model.transition_state()
+                        
+                        next_interval = self.timing.get_next_interval(state)
+                        if self.monitor_detector.is_adaptive_mode():
+                            next_interval *= self.monitor_detector.get_adaptive_multiplier()
+                        if self.config.get("timing.enable_circadian", True):
+                            next_interval *= self.timing.get_circadian_multiplier()
+                        
+                        logger.info(f"Next activity scheduled in {next_interval:.1f} seconds")
 
                 elapsed = time.time() - current_time
                 self.behavioral_model.update(elapsed)

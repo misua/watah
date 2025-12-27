@@ -1,12 +1,12 @@
 daemon:
   pid_file: activity_sim.pid
   log_file: activity_sim.log
-  log_level: INFO
+  log_level: DEBUG
 
 timing:
-  base_interval: 180
-  intensity: medium
-  enable_circadian: true
+  base_interval: 30
+  intensity: high
+  enable_circadian: false
 
 activities:
   mouse_movement:
