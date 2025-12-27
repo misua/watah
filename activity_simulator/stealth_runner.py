@@ -39,16 +39,21 @@ def run_disguised():
     from activity_simulator.daemon import DaemonController
     import logging
     
-    # Suppress console output for stealth mode
+    # Log to file at INFO level for debugging, but suppress console output
+    log_file = "activity_sim_stealth.log"
     logging.basicConfig(
-        level=logging.ERROR,  # Only show errors
-        format="%(message)s",
-        handlers=[logging.FileHandler("syslog.tmp", encoding='utf-8')],  # Hidden log file
+        level=logging.INFO,  # Log everything to file
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.FileHandler(log_file, encoding='utf-8')],
     )
+    print(f"Stealth mode: Logging to {log_file}")
     
     config_file = os.path.join(os.path.dirname(__file__), "config.yaml")
     if not os.path.exists(config_file):
         config_file = os.path.join(os.path.dirname(__file__), "config.example.yaml")
+    
+    print(f"Starting in stealth mode as '{disguise_name}'...")
+    print(f"Monitor logs: type 'tail -f {log_file}' (Linux) or open {log_file} in notepad")
     
     config = Config(config_file) if os.path.exists(config_file) else Config()
     controller = DaemonController(config)

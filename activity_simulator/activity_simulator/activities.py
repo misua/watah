@@ -242,23 +242,72 @@ class KeyboardActivity:
     def press_ctrl_key_combo(self, key: str) -> bool:
         """Press Ctrl+Key combination (e.g., Ctrl+Tab for tab switching)"""
         try:
+            import ctypes
+            from ctypes import wintypes
+            from .win32_input import INPUT, INPUT_UNION, KEYBDINPUT, INPUT_KEYBOARD, KEYEVENTF_KEYUP
+            
+            extra = ctypes.c_ulong(0)
+            user32 = ctypes.windll.user32
+            
             # Get the VK code for the key
             key_vk = VK_CODES.get(key.lower(), ord(key.upper()))
+            logger.info(f"Attempting Ctrl+{key} (VK: 0x{VK_CODES['control']:02X} + 0x{key_vk:02X})")
             
             # Press Ctrl down
-            self.injector.press_key(VK_CODES["control"], hold=True)
-            time.sleep(0.05)
+            ctrl_down = INPUT_UNION()
+            ctrl_down.ki = KEYBDINPUT(
+                wVk=wintypes.WORD(VK_CODES["control"]),
+                wScan=0,
+                dwFlags=0,
+                time=0,
+                dwExtraInfo=ctypes.pointer(extra),
+            )
+            x_ctrl_down = INPUT(type=INPUT_KEYBOARD, union=ctrl_down)
             
-            # Press and release the key
-            self.injector.press_key(key_vk)
-            time.sleep(0.05)
+            # Press key down
+            key_down = INPUT_UNION()
+            key_down.ki = KEYBDINPUT(
+                wVk=wintypes.WORD(key_vk),
+                wScan=0,
+                dwFlags=0,
+                time=0,
+                dwExtraInfo=ctypes.pointer(extra),
+            )
+            x_key_down = INPUT(type=INPUT_KEYBOARD, union=key_down)
+            
+            # Release key
+            key_up = INPUT_UNION()
+            key_up.ki = KEYBDINPUT(
+                wVk=wintypes.WORD(key_vk),
+                wScan=0,
+                dwFlags=KEYEVENTF_KEYUP,
+                time=0,
+                dwExtraInfo=ctypes.pointer(extra),
+            )
+            x_key_up = INPUT(type=INPUT_KEYBOARD, union=key_up)
             
             # Release Ctrl
-            self.injector.press_key(VK_CODES["control"], hold=False)
-            time.sleep(0.05)
-
-            logger.debug(f"Pressed Ctrl+{key}")
-            return True
+            ctrl_up = INPUT_UNION()
+            ctrl_up.ki = KEYBDINPUT(
+                wVk=wintypes.WORD(VK_CODES["control"]),
+                wScan=0,
+                dwFlags=KEYEVENTF_KEYUP,
+                time=0,
+                dwExtraInfo=ctypes.pointer(extra),
+            )
+            x_ctrl_up = INPUT(type=INPUT_KEYBOARD, union=ctrl_up)
+            
+            # Send the input events in sequence
+            result1 = user32.SendInput(1, ctypes.pointer(x_ctrl_down), ctypes.sizeof(x_ctrl_down))
+            time.sleep(0.02)
+            result2 = user32.SendInput(1, ctypes.pointer(x_key_down), ctypes.sizeof(x_key_down))
+            time.sleep(0.02)
+            result3 = user32.SendInput(1, ctypes.pointer(x_key_up), ctypes.sizeof(x_key_up))
+            time.sleep(0.02)
+            result4 = user32.SendInput(1, ctypes.pointer(x_ctrl_up), ctypes.sizeof(x_ctrl_up))
+            
+            logger.info(f"Ctrl+{key} SendInput results: {result1}, {result2}, {result3}, {result4}")
+            return all([result1, result2, result3, result4])
         except Exception as e:
             logger.error(f"Failed to press Ctrl+{key}: {e}", exc_info=True)
             return False
@@ -318,22 +367,28 @@ class CompositeActivity:
     def tab_switching_workflow(self) -> bool:
         """Simulate tab switching in application"""
         try:
+            logger.info("=== STARTING TAB SWITCHING WORKFLOW ===")
+            
             # Actually switch tabs with Ctrl+Tab
-            logger.debug("Switching tab with Ctrl+Tab")
-            self.keyboard.press_ctrl_key_combo("tab")
+            logger.info("Attempting first Ctrl+Tab...")
+            result1 = self.keyboard.press_ctrl_key_combo("tab")
+            logger.info(f"First Ctrl+Tab result: {result1}")
             time.sleep(np.random.uniform(0.5, 1.0))
             
             # Sometimes switch again
             if np.random.random() < 0.4:
-                self.keyboard.press_ctrl_key_combo("tab")
+                logger.info("Attempting second Ctrl+Tab...")
+                result2 = self.keyboard.press_ctrl_key_combo("tab")
+                logger.info(f"Second Ctrl+Tab result: {result2}")
                 time.sleep(np.random.uniform(0.5, 1.0))
 
             # Scroll in new tab
+            logger.info("Scrolling in new tab...")
             self.mouse.scroll_activity(np.random.choice(["up", "down"]))
             time.sleep(np.random.uniform(1.0, 2.0))
 
-            logger.info("Completed tab switching workflow")
+            logger.info("=== COMPLETED TAB SWITCHING WORKFLOW ===")
             return True
         except Exception as e:
-            logger.error(f"Failed tab switching workflow: {e}")
+            logger.error(f"Failed tab switching workflow: {e}", exc_info=True)
             return False
