@@ -11,66 +11,93 @@ class CodeSnippetGenerator:
     PYTHON_SNIPPETS = [
         "import numpy as np",
         "import pandas as pd",
-        "from typing import List, Dict",
+        "from typing import List, Dict, Optional",
         "def process_data(df):",
         "    return df.dropna()",
         "class DataProcessor:",
-        "    def __init__(self):",
+        "    def __init__(self, config):",
+        "        self.config = config",
         "        self.data = []",
         "if __name__ == '__main__':",
-        "    print('Running')",
+        "    main()",
         "for item in items:",
         "    result.append(item)",
         "try:",
         "    data = load_data()",
         "except Exception as e:",
-        "    logger.error(f'Error: {e}')",
+        "    logger.error('Error: %s', e)",
         "async def fetch_data():",
-        "    return await client.get()",
-        "with open('file.txt') as f:",
+        "    return await client.get(url)",
+        "with open('file.txt', 'r') as f:",
         "    content = f.read()",
         "result = [x for x in data if x > 0]",
         "df = pd.DataFrame(data)",
         "model.fit(X_train, y_train)",
         "predictions = model.predict(X_test)",
-        "plt.plot(x, y)",
-        "plt.show()",
-        "self.config = config",
-        "return {'status': 'success'}",
+        "self.logger = logging.getLogger(__name__)",
+        "return {'status': 'success', 'count': len(data)}",
         "logger.info('Processing complete')",
         "assert result == expected",
-        "raise ValueError('Invalid input')",
+        "response = requests.get(url, timeout=30)",
+        "config = yaml.safe_load(f)",
+        "parser.add_argument('--input', type=str)",
+        "app = Flask(__name__)",
+        "@app.route('/api/data')",
+        "def get_data():",
+        "    return jsonify(results)",
+        "conn = sqlite3.connect('db.sqlite')",
+        "cursor.execute('SELECT * FROM users')",
+        "data = json.loads(response.text)",
+        "time.sleep(0.1)",
     ]
 
     TERRAFORM_SNIPPETS = [
-        'resource "aws_instance" "web" {',
+        'resource "aws_instance" "app_server" {',
         "  ami           = var.ami_id",
         "  instance_type = var.instance_type",
+        "  key_name      = var.key_name",
+        "  subnet_id     = var.subnet_id",
         "}",
-        'variable "region" {',
+        'variable "environment" {',
         '  type    = string',
-        '  default = "us-east-1"',
-        'output "instance_id" {',
-        "  value = aws_instance.web.id",
+        '  default = "production"',
+        "}",
+        'output "instance_ip" {',
+        "  value = aws_instance.app_server.public_ip",
+        "}",
         'data "aws_ami" "ubuntu" {',
         "  most_recent = true",
+        "  owners      = [\"099720109477\"]",
+        "}",
         'provider "aws" {',
-        "  region = var.region",
-        'module "vpc" {',
-        '  source = "./modules/vpc"',
-        "  tags = {",
-        '    Environment = "production"',
-        "  }",
+        "  region  = var.aws_region",
+        "  profile = var.aws_profile",
+        "}",
+        'module "networking" {',
+        '  source = "./modules/networking"',
+        "  vpc_cidr = var.vpc_cidr",
+        "}",
         "locals {",
-        '  common_tags = {',
-        '    Project = "demo"',
+        "  common_tags = {",
+        "    Environment = var.environment",
+        "    ManagedBy   = \"Terraform\"",
+        "  }",
+        "}",
         "terraform {",
         '  required_version = ">= 1.0"',
-        "  backend = {",
-        '    bucket = "terraform-state"',
-        "count = var.instance_count",
-        "for_each = var.subnets",
+        "  required_providers {",
+        "    aws = {",
+        '      source  = "hashicorp/aws"',
+        '      version = "~> 5.0"',
+        "    }",
+        "  }",
+        "}",
+        "count      = var.instance_count",
+        "for_each   = var.availability_zones",
         "depends_on = [aws_vpc.main]",
+        "lifecycle {",
+        "  create_before_destroy = true",
+        "}",
     ]
 
     GENERIC_CODE = [
@@ -91,10 +118,11 @@ class CodeSnippetGenerator:
     ]
 
     def __init__(self):
-        pass
+        self.recent_snippets = []
+        self.max_recent = 10
 
     def get_snippet(self, file_extension: str = None) -> str:
-        """Get a random code snippet based on file extension"""
+        """Get a random code snippet based on file extension, avoiding recent repeats"""
         if file_extension == ".py":
             snippets = self.PYTHON_SNIPPETS
         elif file_extension == ".tf":
@@ -102,7 +130,19 @@ class CodeSnippetGenerator:
         else:
             snippets = self.GENERIC_CODE
 
-        return np.random.choice(snippets)
+        available = [s for s in snippets if s not in self.recent_snippets]
+        
+        if not available:
+            self.recent_snippets = []
+            available = snippets
+        
+        snippet = np.random.choice(available)
+        
+        self.recent_snippets.append(snippet)
+        if len(self.recent_snippets) > self.max_recent:
+            self.recent_snippets.pop(0)
+        
+        return snippet
 
     def get_multi_line_snippet(self, file_extension: str = None, lines: int = 3) -> List[str]:
         """Get multiple related code lines"""

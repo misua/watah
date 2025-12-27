@@ -140,6 +140,9 @@ class KeyboardActivity:
             logger.info(f"Typing snippet ({file_ext}): {snippet[:50]}...")
 
             for char in snippet:
+                if ord(char) > 127:
+                    logger.warning(f"Skipping non-ASCII character: {char}")
+                    continue
                 success = self.injector.type_text(char, delay=np.random.uniform(0.05, 0.15))
                 if not success:
                     logger.error(f"Failed to type character: {char}")
