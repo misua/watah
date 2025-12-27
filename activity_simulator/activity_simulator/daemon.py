@@ -31,6 +31,7 @@ class ActivityDaemon:
         self.pause_duration = config.get("safety.pause_duration", 30)
 
         self.injector = Win32InputInjector()
+        self.injector._daemon_ref = self  # Store reference for activities to check paused state
         self.mouse_activity = MouseActivity(self.injector)
         self.keyboard_activity = KeyboardActivity(self.injector)
         self.composite_activity = CompositeActivity(self.mouse_activity, self.keyboard_activity)
@@ -68,20 +69,18 @@ class ActivityDaemon:
         self.currently_simulating = False
 
         def on_mouse_activity(*args):
-            if self.currently_simulating:
-                return
+            # Always detect user input, even during simulation
             self.last_user_input = time.time()
             if not self.paused:
                 self.paused = True
-                logger.info("User input detected, pausing simulation")
+                logger.info("User input detected (mouse), pausing simulation")
 
         def on_keyboard_activity(*args):
-            if self.currently_simulating:
-                return
+            # Always detect user input, even during simulation
             self.last_user_input = time.time()
             if not self.paused:
                 self.paused = True
-                logger.info("User input detected, pausing simulation")
+                logger.info("User input detected (keyboard), pausing simulation")
 
         try:
             mouse_listener = mouse.Listener(

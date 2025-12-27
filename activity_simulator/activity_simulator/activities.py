@@ -129,6 +129,10 @@ class KeyboardActivity:
         try:
             logger.info("Starting keyboard typing activity")
             
+            # Check if we should stop (user input detected)
+            from .daemon import ActivityDaemon
+            daemon_instance = getattr(self.injector, '_daemon_ref', None)
+            
             try:
                 window_title = self.window_detector.get_active_window_title()
                 logger.debug(f"Active window: {window_title}")
@@ -202,39 +206,70 @@ class KeyboardActivity:
             if typing_mode == 'burst':
                 base_delay = (0.02, 0.05)  # Fast typing
                 pause_chance = 0.03
+                line_pause = (0.1, 0.3)  # Quick between lines
             elif typing_mode == 'normal':
                 base_delay = (0.04, 0.08)  # Normal speed
                 pause_chance = 0.08
+                line_pause = (0.3, 0.7)  # Normal pause between lines
             else:  # thinking
                 base_delay = (0.08, 0.15)  # Slower, thinking
                 pause_chance = 0.15
+                line_pause = (0.5, 1.2)  # Longer thinking pauses
 
-            for char in snippet_safe:
-                try:
-                    success = self.injector.type_text(char, delay=np.random.uniform(*base_delay))
-                    if not success:
-                        logger.error(f"Failed to type character: {char}")
-                except Exception as e:
-                    logger.error(f"Error typing character '{char}': {e}")
-                    continue
-                # Occasional thinking pauses
-                if np.random.random() < pause_chance:
-                    time.sleep(np.random.uniform(0.2, 0.6))
+            # Split snippet into lines and type line by line (like a real developer)
+            lines = snippet_safe.split('\\n')
+            for line_idx, line in enumerate(lines):
+                # Check if user has paused before each line
+                if daemon_instance and daemon_instance.paused:
+                    logger.info("User input detected, stopping typing activity")
+                    return False
+                
+                for char in line:
+                    # Check if user has paused (check every ~10 chars for responsiveness)
+                    if daemon_instance and daemon_instance.paused:
+                        logger.info("User input detected during typing, stopping")
+                        return False
+                    
+                    try:
+                        success = self.injector.type_text(char, delay=np.random.uniform(*base_delay))
+                        if not success:
+                            logger.error(f"Failed to type character: {char}")
+                    except Exception as e:
+                        logger.error(f"Error typing character '{char}': {e}")
+                        continue
+                    # Occasional thinking pauses within a line
+                    if np.random.random() < pause_chance:
+                        time.sleep(np.random.uniform(0.2, 0.6))
+                
+                # Press Enter at end of line (except for last line)
+                if line_idx < len(lines) - 1:
+                    self.injector.press_key(VK_CODES["enter"])
+                    # Pause between lines (thinking about next line)
+                    time.sleep(np.random.uniform(*line_pause))
             
+            # Final newline after the whole snippet
             self.injector.press_key(VK_CODES["enter"])
             time.sleep(np.random.uniform(0.1, 0.3))
 
-            logger.info(f"Successfully typed snippet: {snippet}")
+            logger.info(f"Successfully typed snippet: {snippet[:100]}")
             
-            # 30% chance to type multiple related lines (realistic coding session)
+            # 30% chance to type multiple related snippets (realistic coding session)
             if np.random.random() < 0.3:
-                num_extra_lines = np.random.randint(1, 4)
-                logger.info(f"Typing {num_extra_lines} additional lines...")
+                num_extra_lines = np.random.randint(1, 3)
+                logger.info(f"Typing {num_extra_lines} additional snippets...")
                 for _ in range(num_extra_lines):
-                    time.sleep(np.random.uniform(0.3, 0.8))
+                    time.sleep(np.random.uniform(0.5, 1.5))  # Think before next block
                     extra_snippet = self.snippet_generator.get_snippet(file_ext)
-                    for char in extra_snippet:
-                        self.injector.type_text(char, delay=np.random.uniform(0.03, 0.07))
+                    
+                    # Type the extra snippet line by line too
+                    extra_lines = extra_snippet.split('\\n')
+                    for line_idx, line in enumerate(extra_lines):
+                        for char in line:
+                            self.injector.type_text(char, delay=np.random.uniform(0.03, 0.07))
+                        if line_idx < len(extra_lines) - 1:
+                            self.injector.press_key(VK_CODES["enter"])
+                            time.sleep(np.random.uniform(0.2, 0.5))
+                    
                     self.injector.press_key(VK_CODES["enter"])
                     time.sleep(np.random.uniform(0.1, 0.3))
             
