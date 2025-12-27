@@ -240,7 +240,28 @@ class KeyboardActivity:
                 else:
                     line_content = line
                 
+                char_index = 0
                 for char in line_content:
+                    # Realistic typo/correction behavior (8% chance per character)
+                    if np.random.random() < 0.08 and char.isalpha():
+                        # Make a typo: type 1-3 wrong characters
+                        num_wrong_chars = np.random.randint(1, 4)
+                        wrong_chars = np.random.choice(list('asdfghjklqwertyuiop'), size=num_wrong_chars)
+                        
+                        for wrong_char in wrong_chars:
+                            self.injector.type_text(wrong_char, delay=np.random.uniform(0.03, 0.06))
+                        
+                        # Pause (realizing the mistake)
+                        time.sleep(np.random.uniform(0.1, 0.3))
+                        
+                        # Delete the wrong characters
+                        for _ in range(num_wrong_chars):
+                            self.injector.press_key(VK_CODES["backspace"])
+                            time.sleep(np.random.uniform(0.05, 0.1))
+                        
+                        # Brief pause before typing correct character
+                        time.sleep(np.random.uniform(0.05, 0.15))
+                    
                     try:
                         success = self.injector.type_text(char, delay=np.random.uniform(*base_delay))
                         if not success:
@@ -248,9 +269,30 @@ class KeyboardActivity:
                     except Exception as e:
                         logger.error(f"Error typing character '{char}': {e}")
                         continue
+                    
                     # Occasional thinking pauses within a line
                     if np.random.random() < pause_chance:
                         time.sleep(np.random.uniform(0.2, 0.6))
+                    
+                    # Occasionally delete and retype last few characters (rethinking, 3% chance)
+                    if char_index > 3 and np.random.random() < 0.03:
+                        chars_to_delete = np.random.randint(2, min(5, char_index + 1))
+                        # Pause (reconsidering)
+                        time.sleep(np.random.uniform(0.2, 0.5))
+                        # Delete characters
+                        for _ in range(chars_to_delete):
+                            self.injector.press_key(VK_CODES["backspace"])
+                            time.sleep(np.random.uniform(0.04, 0.08))
+                        # Pause before retyping
+                        time.sleep(np.random.uniform(0.1, 0.3))
+                        # Retype the deleted characters
+                        start_idx = max(0, char_index - chars_to_delete + 1)
+                        for i in range(start_idx, char_index + 1):
+                            if i < len(line_content):
+                                self.injector.type_text(line_content[i], delay=np.random.uniform(*base_delay))
+                                time.sleep(np.random.uniform(0.02, 0.05))
+                    
+                    char_index += 1
                 
                 # Press Enter at end of line (except for last line)
                 if line_idx < len(lines) - 1:
