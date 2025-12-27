@@ -242,67 +242,25 @@ class KeyboardActivity:
     def press_ctrl_key_combo(self, key: str) -> bool:
         """Press Ctrl+Key combination (e.g., Ctrl+Tab for tab switching)"""
         try:
-            extra = __import__("ctypes").c_ulong(0)
-            from .win32_input import INPUT, INPUT_UNION, KEYBDINPUT, INPUT_KEYBOARD, KEYEVENTF_KEYUP
-            import ctypes
-            from ctypes import wintypes
-
-            user32 = ctypes.windll.user32
-
-            ctrl_down = INPUT_UNION()
-            ctrl_down.ki = KEYBDINPUT(
-                wVk=wintypes.WORD(VK_CODES["control"]),
-                wScan=0,
-                dwFlags=0,
-                time=0,
-                dwExtraInfo=ctypes.pointer(extra),
-            )
-            x_ctrl_down = INPUT(type=INPUT_KEYBOARD, union=ctrl_down)
-
-            # Use proper VK code for key
+            # Get the VK code for the key
             key_vk = VK_CODES.get(key.lower(), ord(key.upper()))
-            key_down = INPUT_UNION()
-            key_down.ki = KEYBDINPUT(
-                wVk=wintypes.WORD(key_vk),
-                wScan=0,
-                dwFlags=0,
-                time=0,
-                dwExtraInfo=ctypes.pointer(extra),
-            )
-            x_key_down = INPUT(type=INPUT_KEYBOARD, union=key_down)
-
-            key_up = INPUT_UNION()
-            key_up.ki = KEYBDINPUT(
-                wVk=wintypes.WORD(key_vk),
-                wScan=0,
-                dwFlags=KEYEVENTF_KEYUP,
-                time=0,
-                dwExtraInfo=ctypes.pointer(extra),
-            )
-            x_key_up = INPUT(type=INPUT_KEYBOARD, union=key_up)
-
-            ctrl_up = INPUT_UNION()
-            ctrl_up.ki = KEYBDINPUT(
-                wVk=wintypes.WORD(VK_CODES["ctrl"]),
-                wScan=0,
-                dwFlags=KEYEVENTF_KEYUP,
-                time=0,
-                dwExtraInfo=ctypes.pointer(extra),
-            )
-            x_ctrl_up = INPUT(type=INPUT_KEYBOARD, union=ctrl_up)
-
-            user32.SendInput(1, ctypes.pointer(x_ctrl_down), ctypes.sizeof(x_ctrl_down))
+            
+            # Press Ctrl down
+            self.injector.press_key(VK_CODES["control"], hold=True)
             time.sleep(0.05)
-            user32.SendInput(1, ctypes.pointer(x_key_down), ctypes.sizeof(x_key_down))
+            
+            # Press and release the key
+            self.injector.press_key(key_vk)
             time.sleep(0.05)
-            user32.SendInput(1, ctypes.pointer(x_key_up), ctypes.sizeof(x_key_up))
+            
+            # Release Ctrl
+            self.injector.press_key(VK_CODES["control"], hold=False)
             time.sleep(0.05)
-            user32.SendInput(1, ctypes.pointer(x_ctrl_up), ctypes.sizeof(x_ctrl_up))
 
             logger.debug(f"Pressed Ctrl+{key}")
             return True
         except Exception as e:
-            logger.error(f"Failed to press Ctrl+{key}: {e}")
+            logger.error(f"Failed to press Ctrl+{key}: {e}", exc_info=True)
             return False
 
 
