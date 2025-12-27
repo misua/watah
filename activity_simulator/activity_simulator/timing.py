@@ -22,23 +22,23 @@ class TimingRandomizer:
 
     def get_next_interval(self, state: str = "work") -> float:
         """Get next activity interval with multi-layered randomization"""
-        if state == "work":
-            mean = 20 if self.intensity == "high" else 60 if self.intensity == "medium" else 120
-        elif state == "break":
-            mean = 180
+        if self.intensity == "high":
+            mean = 8
+        elif self.intensity == "medium":
+            mean = 25
         else:
-            mean = self.base_interval
+            mean = 60
 
-        gaussian_base = np.random.normal(mean, mean * 0.4)
-        gaussian_base = max(10, gaussian_base)
+        gaussian_base = np.random.normal(mean, mean * 0.3)
+        gaussian_base = max(5, gaussian_base)
 
-        poisson_jitter = np.random.poisson(3)
+        poisson_jitter = np.random.poisson(2)
 
-        micro_jitter = np.random.uniform(-1, 1)
+        micro_jitter = np.random.uniform(-0.5, 0.5)
 
         interval = gaussian_base + poisson_jitter + micro_jitter
 
-        interval = max(10, min(300, interval))
+        interval = max(5, min(60, interval))
 
         self.activity_history.append(interval)
         if len(self.activity_history) > 20:
@@ -48,18 +48,18 @@ class TimingRandomizer:
 
     def get_pause_duration(self, activity_type: str) -> float:
         """Get pause duration after activity"""
-        if activity_type == "mouse_move":
+        if activity_type == "mouse_movement":
+            base = 0.3
+        elif activity_type == "mouse_scroll":
             base = 0.5
-        elif activity_type == "click":
+        elif activity_type == "keyboard_typing":
             base = 1.0
-        elif activity_type == "scroll":
-            base = 0.8
-        elif activity_type == "type":
-            base = 2.0
+        elif activity_type == "keyboard_navigation":
+            base = 0.2
         else:
-            base = 1.0
+            base = 0.5
 
-        jitter = np.random.uniform(-0.2, 0.5)
+        jitter = np.random.uniform(-0.1, 0.3)
         return max(0.1, base + jitter)
 
     def get_typing_delay(self) -> float:

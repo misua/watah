@@ -65,7 +65,7 @@ class MouseActivity:
 
             for i, (x, y) in enumerate(points):
                 self.injector.move_mouse_absolute(x, y)
-                delay = np.random.uniform(0.001, 0.005)
+                delay = np.random.uniform(0.008, 0.015)
                 time.sleep(delay)
 
             logger.debug(f"Moved mouse from ({start_x}, {start_y}) to ({target_x}, {target_y})")
@@ -95,14 +95,21 @@ class MouseActivity:
             return False
 
     def scroll_activity(self, direction: str = "down") -> bool:
-        """Scroll mouse wheel"""
+        """Scroll mouse wheel with multiple scroll events"""
         try:
-            amount = np.random.randint(1, 4) * 120
-            if direction == "up":
-                amount = -amount
-
-            self.injector.scroll_mouse(amount)
-            logger.debug(f"Scrolled {direction} by {amount}")
+            scroll_count = np.random.randint(2, 6)
+            for _ in range(scroll_count):
+                amount = 120
+                if direction == "up":
+                    amount = -120
+                
+                success = self.injector.scroll_mouse(amount)
+                if not success:
+                    logger.error(f"Scroll failed")
+                    return False
+                time.sleep(np.random.uniform(0.1, 0.3))
+            
+            logger.debug(f"Scrolled {direction} {scroll_count} times")
             return True
         except Exception as e:
             logger.error(f"Failed to scroll: {e}")
