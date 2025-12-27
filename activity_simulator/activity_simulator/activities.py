@@ -195,21 +195,49 @@ class KeyboardActivity:
             
             logger.info(f"Typing snippet ({file_ext}) at safe location ({typing_strategy}): {snippet_safe[:50]}...")
 
+            # Realistic typing speed: 60-120 WPM = 5-10 chars/sec
+            # Faster bursts when in the zone, slower when thinking
+            typing_mode = np.random.choice(['burst', 'normal', 'thinking'], p=[0.4, 0.4, 0.2])
+            
+            if typing_mode == 'burst':
+                base_delay = (0.02, 0.05)  # Fast typing
+                pause_chance = 0.03
+            elif typing_mode == 'normal':
+                base_delay = (0.04, 0.08)  # Normal speed
+                pause_chance = 0.08
+            else:  # thinking
+                base_delay = (0.08, 0.15)  # Slower, thinking
+                pause_chance = 0.15
+
             for char in snippet_safe:
                 try:
-                    success = self.injector.type_text(char, delay=np.random.uniform(0.05, 0.15))
+                    success = self.injector.type_text(char, delay=np.random.uniform(*base_delay))
                     if not success:
                         logger.error(f"Failed to type character: {char}")
                 except Exception as e:
                     logger.error(f"Error typing character '{char}': {e}")
                     continue
-                if np.random.random() < 0.1:
-                    time.sleep(np.random.uniform(0.3, 0.8))
+                # Occasional thinking pauses
+                if np.random.random() < pause_chance:
+                    time.sleep(np.random.uniform(0.2, 0.6))
             
             self.injector.press_key(VK_CODES["enter"])
-            time.sleep(np.random.uniform(0.2, 0.5))
+            time.sleep(np.random.uniform(0.1, 0.3))
 
             logger.info(f"Successfully typed snippet: {snippet}")
+            
+            # 30% chance to type multiple related lines (realistic coding session)
+            if np.random.random() < 0.3:
+                num_extra_lines = np.random.randint(1, 4)
+                logger.info(f"Typing {num_extra_lines} additional lines...")
+                for _ in range(num_extra_lines):
+                    time.sleep(np.random.uniform(0.3, 0.8))
+                    extra_snippet = self.snippet_generator.get_snippet(file_ext)
+                    for char in extra_snippet:
+                        self.injector.type_text(char, delay=np.random.uniform(0.03, 0.07))
+                    self.injector.press_key(VK_CODES["enter"])
+                    time.sleep(np.random.uniform(0.1, 0.3))
+            
             return True
         except Exception as e:
             logger.error(f"Failed to type text: {e}", exc_info=True)

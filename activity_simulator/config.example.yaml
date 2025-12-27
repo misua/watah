@@ -4,29 +4,29 @@ daemon:
   log_level: INFO
 
 timing:
-  base_interval: 180
+  base_interval: 45  # Average seconds between activities (more frequent)
   intensity: medium
   enable_circadian: true
 
 activities:
   mouse_movement:
     enabled: true
-    weight: 0.3
+    weight: 0.20  # Reduced slightly
   mouse_scroll:
     enabled: true
-    weight: 0.25
+    weight: 0.20  # Reduced slightly
   keyboard_navigation:
     enabled: true
     weight: 0.15
   keyboard_typing:
     enabled: true
-    weight: 0.1
+    weight: 0.25  # Increased for more coding
   tab_switching:
     enabled: true
-    weight: 0.1
+    weight: 0.10
   composite_workflows:
     enabled: true
-    weight: 0.1
+    weight: 0.10
 
 safety:
   pause_on_user_input: true
