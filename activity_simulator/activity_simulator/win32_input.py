@@ -289,6 +289,7 @@ VK_CODES = {
     "enter": 0x0D,
     "shift": 0x10,
     "ctrl": 0x11,
+    "control": 0x11,  # Alias for ctrl
     "alt": 0x12,
     "escape": 0x1B,
     "space": 0x20,

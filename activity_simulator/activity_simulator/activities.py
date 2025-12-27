@@ -143,16 +143,23 @@ class KeyboardActivity:
                 logger.warning(f"Window detection failed: {e}, using .py default")
                 file_ext = ".py"
             
-            typing_strategy = np.random.choice(['end_of_file', 'new_line_after_current', 'new_line_before_current'])
+            # Prefer end of file to avoid destroying code
+            typing_strategy = np.random.choice(
+                ['end_of_file', 'new_line_after_current', 'comment_only'],
+                p=[0.6, 0.3, 0.1]  # 60% end of file, 30% new line after, 10% comment
+            )
             
             if typing_strategy == 'end_of_file':
-                logger.debug("Moving to end of file")
+                logger.debug("Moving to end of file (safest)")
                 self.injector.press_key(VK_CODES["control"], hold=True)
                 time.sleep(0.05)
                 self.injector.press_key(VK_CODES["end"])
                 time.sleep(0.05)
                 self.injector.press_key(VK_CODES["control"], hold=False)
                 time.sleep(0.1)
+                # Add double newline for safety
+                self.injector.press_key(VK_CODES["enter"])
+                time.sleep(0.05)
                 self.injector.press_key(VK_CODES["enter"])
                 time.sleep(0.1)
             elif typing_strategy == 'new_line_after_current':
@@ -161,14 +168,22 @@ class KeyboardActivity:
                 time.sleep(0.1)
                 self.injector.press_key(VK_CODES["enter"])
                 time.sleep(0.1)
-            else:
-                logger.debug("Creating new line before current")
-                self.injector.press_key(VK_CODES["home"])
+            else:  # comment_only
+                logger.debug("Adding comment only (very safe)")
+                self.injector.press_key(VK_CODES["end"])
                 time.sleep(0.1)
                 self.injector.press_key(VK_CODES["enter"])
                 time.sleep(0.1)
-                self.injector.press_key(VK_CODES["up"])
-                time.sleep(0.1)
+                # Override to use comment snippet
+                if file_ext == ".py":
+                    snippet = "# " + np.random.choice(["TODO: implement", "FIXME", "Review this", "Optimize later"])
+                else:
+                    snippet = "// " + np.random.choice(["TODO", "FIXME", "Review", "Check this"])
+                
+                for char in snippet:
+                    self.injector.type_text(char, delay=np.random.uniform(0.05, 0.15))
+                logger.info(f"Added comment: {snippet}")
+                return True
             
             snippet = self.snippet_generator.get_snippet(file_ext)
             
@@ -225,7 +240,7 @@ class KeyboardActivity:
             return False
 
     def press_ctrl_key_combo(self, key: str) -> bool:
-        """Press Ctrl+Key combination"""
+        """Press Ctrl+Key combination (e.g., Ctrl+Tab for tab switching)"""
         try:
             extra = __import__("ctypes").c_ulong(0)
             from .win32_input import INPUT, INPUT_UNION, KEYBDINPUT, INPUT_KEYBOARD, KEYEVENTF_KEYUP
@@ -236,7 +251,7 @@ class KeyboardActivity:
 
             ctrl_down = INPUT_UNION()
             ctrl_down.ki = KEYBDINPUT(
-                wVk=wintypes.WORD(VK_CODES["ctrl"]),
+                wVk=wintypes.WORD(VK_CODES["control"]),
                 wScan=0,
                 dwFlags=0,
                 time=0,
@@ -244,7 +259,8 @@ class KeyboardActivity:
             )
             x_ctrl_down = INPUT(type=INPUT_KEYBOARD, union=ctrl_down)
 
-            key_vk = VK_CODES.get(key, ord(key.upper()))
+            # Use proper VK code for key
+            key_vk = VK_CODES.get(key.lower(), ord(key.upper()))
             key_down = INPUT_UNION()
             key_down.ki = KEYBDINPUT(
                 wVk=wintypes.WORD(key_vk),
@@ -344,9 +360,17 @@ class CompositeActivity:
     def tab_switching_workflow(self) -> bool:
         """Simulate tab switching in application"""
         try:
+            # Actually switch tabs with Ctrl+Tab
+            logger.debug("Switching tab with Ctrl+Tab")
             self.keyboard.press_ctrl_key_combo("tab")
-            time.sleep(np.random.uniform(0.5, 1.5))
+            time.sleep(np.random.uniform(0.5, 1.0))
+            
+            # Sometimes switch again
+            if np.random.random() < 0.4:
+                self.keyboard.press_ctrl_key_combo("tab")
+                time.sleep(np.random.uniform(0.5, 1.0))
 
+            # Scroll in new tab
             self.mouse.scroll_activity(np.random.choice(["up", "down"]))
             time.sleep(np.random.uniform(1.0, 2.0))
 

@@ -1,0 +1,4 @@
+2025-12-27 23:21:47,819 - test - INFO - ✓ Activity mouse_movement completed successfully
+2025-12-27 23:21:47,819 - test - ERROR - ✗ Activity keyboard_typing FAILED
+2025-12-27 23:21:47,819 - test - INFO - >>> Executing activity: mouse_scroll
+2025-12-27 23:21:47,819 - test - INFO - >>> Next activity in 45.3 seconds
