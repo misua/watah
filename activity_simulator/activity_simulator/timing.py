@@ -99,19 +99,19 @@ class MarkovChain:
     def __init__(self):
         self.states = ["work", "break", "reading", "typing", "browsing"]
         self.transition_matrix = {
-            "work": {"work": 0.7, "break": 0.1, "reading": 0.1, "typing": 0.05, "browsing": 0.05},
-            "break": {"work": 0.6, "break": 0.2, "reading": 0.1, "typing": 0.05, "browsing": 0.05},
-            "reading": {"work": 0.3, "break": 0.1, "reading": 0.4, "typing": 0.1, "browsing": 0.1},
-            "typing": {"work": 0.4, "break": 0.1, "reading": 0.1, "typing": 0.3, "browsing": 0.1},
+            "work": {"work": 0.4, "break": 0.05, "reading": 0.15, "typing": 0.25, "browsing": 0.15},
+            "break": {"work": 0.5, "break": 0.1, "reading": 0.1, "typing": 0.2, "browsing": 0.1},
+            "reading": {"work": 0.2, "break": 0.05, "reading": 0.3, "typing": 0.3, "browsing": 0.15},
+            "typing": {"work": 0.2, "break": 0.05, "reading": 0.1, "typing": 0.5, "browsing": 0.15},
             "browsing": {
-                "work": 0.3,
-                "break": 0.1,
-                "reading": 0.2,
-                "typing": 0.1,
-                "browsing": 0.3,
+                "work": 0.2,
+                "break": 0.05,
+                "reading": 0.15,
+                "typing": 0.4,
+                "browsing": 0.2,
             },
         }
-        self.current_state = "work"
+        self.current_state = "typing"  # Start in typing state for more coding
 
     def next_state(self) -> str:
         """Get next state based on transition probabilities"""

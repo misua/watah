@@ -133,19 +133,18 @@ class KeyboardActivity:
             from .daemon import ActivityDaemon
             daemon_instance = getattr(self.injector, '_daemon_ref', None)
             
+            # Try to detect file type from window, but default to Python if it fails
+            file_ext = ".py"
             try:
                 window_title = self.window_detector.get_active_window_title()
-                logger.debug(f"Active window: {window_title}")
-                
-                # Check if in code editor (but don't fail if detection doesn't work)
-                if window_title and not any(editor in window_title.lower() for editor in ['vscode', 'code', 'visual studio', 'notepad', 'sublime', 'atom', 'vim', 'pycharm']):
-                    logger.info(f"Window '{window_title}' may not be a code editor, but typing anyway")
-                
-                file_ext = self.window_detector.detect_file_extension()
-                logger.debug(f"Detected file extension: {file_ext}")
+                if window_title:
+                    logger.debug(f"Active window: {window_title}")
+                    detected_ext = self.window_detector.detect_file_extension()
+                    if detected_ext:
+                        file_ext = detected_ext
+                        logger.debug(f"Detected file extension: {file_ext}")
             except Exception as e:
-                logger.debug(f"Window detection failed: {e}, proceeding with .py default")
-                file_ext = ".py"
+                logger.debug(f"Window detection failed: {e}, using .py default")
             
             # Prefer end of file to avoid destroying code
             typing_strategy = np.random.choice(

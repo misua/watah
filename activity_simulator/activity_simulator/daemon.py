@@ -215,7 +215,12 @@ class ActivityDaemon:
                             pause = self.timing.get_pause_duration(activity_name)
                             time.sleep(pause)
                         else:
-                            logger.error(f"✗ Activity {activity_name} FAILED")
+                            logger.warning(f"✗ Activity {activity_name} FAILED")
+
+                        # Transition to next behavioral state
+                        self.behavioral_model.transition_state()
+                        new_state = self.behavioral_model.get_current_state()
+                        logger.debug(f"Behavioral state: {new_state}")
 
                         last_activity_time = time.time()
                         
