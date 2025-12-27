@@ -69,14 +69,18 @@ class ActivityDaemon:
         self.currently_simulating = False
 
         def on_mouse_activity(*args):
-            # Always detect user input, even during simulation
+            # Ignore simulated input, only detect real user input
+            if self.currently_simulating:
+                return
             self.last_user_input = time.time()
             if not self.paused:
                 self.paused = True
                 logger.info("User input detected (mouse), pausing simulation")
 
         def on_keyboard_activity(*args):
-            # Always detect user input, even during simulation
+            # Ignore simulated input, only detect real user input
+            if self.currently_simulating:
+                return
             self.last_user_input = time.time()
             if not self.paused:
                 self.paused = True

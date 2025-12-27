@@ -218,17 +218,7 @@ class KeyboardActivity:
             # Split snippet into lines and type line by line (like a real developer)
             lines = snippet_safe.split('\n')
             for line_idx, line in enumerate(lines):
-                # Check if user has paused before each line
-                if daemon_instance and daemon_instance.paused:
-                    logger.info("User input detected, stopping typing activity")
-                    return False
-                
                 for char in line:
-                    # Check if user has paused (check every ~10 chars for responsiveness)
-                    if daemon_instance and daemon_instance.paused:
-                        logger.info("User input detected during typing, stopping")
-                        return False
-                    
                     try:
                         success = self.injector.type_text(char, delay=np.random.uniform(*base_delay))
                         if not success:
