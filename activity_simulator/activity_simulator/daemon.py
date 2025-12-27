@@ -306,10 +306,32 @@ class DaemonController:
         log_file = self.config.get("daemon.log_file", "activity_sim.log")
         log_level = self.config.get("daemon.log_level", "INFO")
 
+        # Create handlers with proper encoding support
+        import io
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        
+        # Wrap stdout with UTF-8 encoding and error handling for Unicode characters
+        try:
+            # Use UTF-8 encoding with 'replace' error handling to avoid cp1252 issues on Windows
+            stdout_stream = io.TextIOWrapper(
+                sys.stdout.buffer, 
+                encoding='utf-8',
+                errors='replace',  # Replace unencodable characters instead of crashing
+                line_buffering=True
+            )
+            stream_handler = logging.StreamHandler(stdout_stream)
+        except (AttributeError, io.UnsupportedOperation):
+            # Fallback for environments without buffer access
+            stream_handler = logging.StreamHandler(sys.stdout)
+        
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        file_handler.setFormatter(formatter)
+        stream_handler.setFormatter(formatter)
+
         logging.basicConfig(
             level=getattr(logging, log_level),
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            handlers=[logging.FileHandler(log_file), logging.StreamHandler()],
+            handlers=[file_handler, stream_handler],
         )
 
         self.write_pid(os.getpid())

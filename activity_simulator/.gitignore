@@ -34,3 +34,8 @@ htmlcov/
 config.yaml
 activity_sim.pid
 activity_sim.log
+
+# Virtual environment
+venv/
+env/
+ENV/
