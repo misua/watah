@@ -285,6 +285,7 @@ class Win32InputInjector:
 
 
 VK_CODES = {
+    "backspace": 0x08,
     "tab": 0x09,
     "enter": 0x0D,
     "shift": 0x10,

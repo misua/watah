@@ -148,8 +148,8 @@ class KeyboardActivity:
             
             # Prefer end of file to avoid destroying code
             typing_strategy = np.random.choice(
-                ['end_of_file', 'new_line_after_current', 'comment_only'],
-                p=[0.6, 0.3, 0.1]  # 60% end of file, 30% new line after, 10% comment
+                ['end_of_file', 'comment_only'],
+                p=[0.9, 0.1]  # 90% end of file, 10% comment only
             )
             
             if typing_strategy == 'end_of_file':
@@ -160,16 +160,10 @@ class KeyboardActivity:
                 time.sleep(0.05)
                 self.injector.press_key(VK_CODES["control"], hold=False)
                 time.sleep(0.1)
-                # Add double newline for safety
-                self.injector.press_key(VK_CODES["enter"])
-                time.sleep(0.05)
-                self.injector.press_key(VK_CODES["enter"])
-                time.sleep(0.1)
-            elif typing_strategy == 'new_line_after_current':
-                logger.debug("Creating new line after current")
-                self.injector.press_key(VK_CODES["end"])
-                time.sleep(0.1)
-                self.injector.press_key(VK_CODES["enter"])
+                # Add multiple blank lines for safety (separate from existing code)
+                for _ in range(3):
+                    self.injector.press_key(VK_CODES["enter"])
+                    time.sleep(0.05)
                 time.sleep(0.1)
             else:  # comment_only
                 logger.debug("Adding comment only (very safe)")
@@ -218,41 +212,19 @@ class KeyboardActivity:
             # Split snippet into lines and type line by line (like a real developer)
             lines = snippet_safe.split('\n')
             for line_idx, line in enumerate(lines):
-                # Handle indentation: convert leading spaces to tabs for code editors
-                leading_spaces = len(line) - len(line.lstrip(' '))
-                if leading_spaces > 0:
-                    # Most code editors use 4 spaces = 1 tab for Python, 2 spaces = 1 tab for Terraform
-                    spaces_per_tab = 4 if file_ext == ".py" else 2
-                    num_tabs = leading_spaces // spaces_per_tab
-                    remaining_spaces = leading_spaces % spaces_per_tab
-                    
-                    # Type tabs for indentation
-                    for _ in range(num_tabs):
-                        self.injector.press_key(VK_CODES["tab"])
-                        time.sleep(np.random.uniform(0.05, 0.1))
-                    
-                    # Type any remaining spaces
-                    for _ in range(remaining_spaces):
-                        self.injector.type_text(' ', delay=0.05)
-                    
-                    # Type the rest of the line (without leading spaces)
-                    line_content = line.lstrip(' ')
-                else:
-                    line_content = line
-                
                 char_index = 0
-                for char in line_content:
-                    # Realistic typo/correction behavior (8% chance per character)
-                    if np.random.random() < 0.08 and char.isalpha():
-                        # Make a typo: type 1-3 wrong characters
-                        num_wrong_chars = np.random.randint(1, 4)
+                for char in line:
+                    # Realistic typo/correction behavior (2% chance per character, only on letters)
+                    if np.random.random() < 0.02 and char.isalpha():
+                        # Make a typo: type 1-2 wrong characters
+                        num_wrong_chars = np.random.randint(1, 3)
                         wrong_chars = np.random.choice(list('asdfghjklqwertyuiop'), size=num_wrong_chars)
                         
                         for wrong_char in wrong_chars:
                             self.injector.type_text(wrong_char, delay=np.random.uniform(0.03, 0.06))
                         
                         # Pause (realizing the mistake)
-                        time.sleep(np.random.uniform(0.1, 0.3))
+                        time.sleep(np.random.uniform(0.1, 0.25))
                         
                         # Delete the wrong characters
                         for _ in range(num_wrong_chars):
@@ -260,7 +232,7 @@ class KeyboardActivity:
                             time.sleep(np.random.uniform(0.05, 0.1))
                         
                         # Brief pause before typing correct character
-                        time.sleep(np.random.uniform(0.05, 0.15))
+                        time.sleep(np.random.uniform(0.05, 0.1))
                     
                     try:
                         success = self.injector.type_text(char, delay=np.random.uniform(*base_delay))
@@ -274,22 +246,22 @@ class KeyboardActivity:
                     if np.random.random() < pause_chance:
                         time.sleep(np.random.uniform(0.2, 0.6))
                     
-                    # Occasionally delete and retype last few characters (rethinking, 3% chance)
-                    if char_index > 3 and np.random.random() < 0.03:
-                        chars_to_delete = np.random.randint(2, min(5, char_index + 1))
+                    # Occasionally delete and retype last few characters (rethinking, 1% chance)
+                    if char_index > 3 and np.random.random() < 0.01:
+                        chars_to_delete = np.random.randint(2, min(4, char_index + 1))
                         # Pause (reconsidering)
-                        time.sleep(np.random.uniform(0.2, 0.5))
+                        time.sleep(np.random.uniform(0.2, 0.4))
                         # Delete characters
                         for _ in range(chars_to_delete):
                             self.injector.press_key(VK_CODES["backspace"])
                             time.sleep(np.random.uniform(0.04, 0.08))
                         # Pause before retyping
-                        time.sleep(np.random.uniform(0.1, 0.3))
+                        time.sleep(np.random.uniform(0.1, 0.25))
                         # Retype the deleted characters
                         start_idx = max(0, char_index - chars_to_delete + 1)
                         for i in range(start_idx, char_index + 1):
-                            if i < len(line_content):
-                                self.injector.type_text(line_content[i], delay=np.random.uniform(*base_delay))
+                            if i < len(line):
+                                self.injector.type_text(line[i], delay=np.random.uniform(*base_delay))
                                 time.sleep(np.random.uniform(0.02, 0.05))
                     
                     char_index += 1
