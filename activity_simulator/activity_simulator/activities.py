@@ -171,15 +171,23 @@ class KeyboardActivity:
                 time.sleep(0.1)
             
             snippet = self.snippet_generator.get_snippet(file_ext)
-            logger.info(f"Typing snippet ({file_ext}) at safe location ({typing_strategy}): {snippet[:50]}...")
+            
+            try:
+                snippet_safe = snippet.encode('ascii').decode('ascii')
+            except (UnicodeEncodeError, UnicodeDecodeError) as e:
+                logger.error(f"Snippet contains non-ASCII characters: {e}, filtering...")
+                snippet_safe = ''.join(c for c in snippet if ord(c) < 128)
+            
+            logger.info(f"Typing snippet ({file_ext}) at safe location ({typing_strategy}): {snippet_safe[:50]}...")
 
-            for char in snippet:
-                if ord(char) > 127:
-                    logger.warning(f"Skipping non-ASCII character: {char}")
+            for char in snippet_safe:
+                try:
+                    success = self.injector.type_text(char, delay=np.random.uniform(0.05, 0.15))
+                    if not success:
+                        logger.error(f"Failed to type character: {char}")
+                except Exception as e:
+                    logger.error(f"Error typing character '{char}': {e}")
                     continue
-                success = self.injector.type_text(char, delay=np.random.uniform(0.05, 0.15))
-                if not success:
-                    logger.error(f"Failed to type character: {char}")
                 if np.random.random() < 0.1:
                     time.sleep(np.random.uniform(0.3, 0.8))
             
