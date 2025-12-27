@@ -249,8 +249,16 @@ class KeyboardActivity:
             extra = ctypes.c_ulong(0)
             user32 = ctypes.windll.user32
             
-            # Get the VK code for the key
-            key_vk = VK_CODES.get(key.lower(), ord(key.upper()))
+            # Get the VK code for the key - only use ord() for single characters
+            key_lower = key.lower()
+            if key_lower in VK_CODES:
+                key_vk = VK_CODES[key_lower]
+            elif len(key) == 1:
+                key_vk = ord(key.upper())
+            else:
+                logger.error(f"Unknown key: {key}")
+                return False
+                
             logger.info(f"Attempting Ctrl+{key} (VK: 0x{VK_CODES['control']:02X} + 0x{key_vk:02X})")
             
             # Press Ctrl down
