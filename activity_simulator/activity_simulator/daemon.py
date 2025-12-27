@@ -44,6 +44,7 @@ class ActivityDaemon:
 
         self.user_input_listener = None
         self.pause_on_input_enabled = config.get("safety.pause_on_user_input", True)
+        self.currently_simulating = False
         if self.pause_on_input_enabled:
             self._setup_user_input_detection()
 
@@ -64,14 +65,19 @@ class ActivityDaemon:
 
     def _setup_user_input_detection(self):
         """Setup listeners for user input"""
+        self.currently_simulating = False
 
         def on_mouse_activity(*args):
+            if self.currently_simulating:
+                return
             self.last_user_input = time.time()
             if not self.paused:
                 self.paused = True
                 logger.info("User input detected, pausing simulation")
 
         def on_keyboard_activity(*args):
+            if self.currently_simulating:
+                return
             self.last_user_input = time.time()
             if not self.paused:
                 self.paused = True
@@ -197,7 +203,14 @@ class ActivityDaemon:
                     activity_name = self._select_activity()
                     if activity_name:
                         logger.info(f"Executing activity: {activity_name} (state: {state}, interval was: {next_interval:.1f}s)")
+                        
+                        if self.pause_on_input_enabled:
+                            self.currently_simulating = True
+                        
                         success = self._execute_activity(activity_name)
+                        
+                        if self.pause_on_input_enabled:
+                            self.currently_simulating = False
 
                         if success:
                             pause = self.timing.get_pause_duration(activity_name)

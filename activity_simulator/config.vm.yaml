@@ -4,7 +4,7 @@ daemon:
   log_level: DEBUG
 
 timing:
-  base_interval: 15
+  base_interval: 10
   intensity: high
   enable_circadian: false
 

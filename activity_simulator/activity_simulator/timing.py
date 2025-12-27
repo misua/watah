@@ -23,22 +23,22 @@ class TimingRandomizer:
     def get_next_interval(self, state: str = "work") -> float:
         """Get next activity interval with multi-layered randomization"""
         if state == "work":
-            mean = 75 if self.intensity == "high" else 120 if self.intensity == "medium" else 180
+            mean = 20 if self.intensity == "high" else 60 if self.intensity == "medium" else 120
         elif state == "break":
-            mean = 300
+            mean = 180
         else:
             mean = self.base_interval
 
-        gaussian_base = np.random.normal(mean, mean * 0.3)
-        gaussian_base = max(30, gaussian_base)
+        gaussian_base = np.random.normal(mean, mean * 0.4)
+        gaussian_base = max(10, gaussian_base)
 
-        poisson_jitter = np.random.poisson(5)
+        poisson_jitter = np.random.poisson(3)
 
-        micro_jitter = np.random.uniform(-2, 2)
+        micro_jitter = np.random.uniform(-1, 1)
 
         interval = gaussian_base + poisson_jitter + micro_jitter
 
-        interval = max(20, min(600, interval))
+        interval = max(10, min(300, interval))
 
         self.activity_history.append(interval)
         if len(self.activity_history) > 20:
