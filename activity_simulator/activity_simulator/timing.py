@@ -78,15 +78,34 @@ class TimingRandomizer:
     def get_circadian_multiplier(self) -> float:
         """Get activity multiplier based on time of day"""
         hour = time.localtime().tm_hour
+        minute = time.localtime().tm_min
+
+        # Lunch break: 12pm-1pm (no activity)
+        if hour == 12:
+            return float('inf')  # Effectively disables activity during lunch
+        
+        # End of day: stop at random time between 4:00pm-4:30pm
+        if hour == 16:  # 4pm hour
+            # Stop at random minute between 0-30
+            import random
+            stop_minute = random.randint(0, 30)
+            if minute >= stop_minute:
+                logger.info(f"End of day reached at 4:{minute:02d}pm, stopping simulator")
+                import sys
+                sys.exit(0)
+        
+        # After 4:30pm, always stop
+        if hour >= 17 or (hour == 16 and minute > 30):
+            logger.info(f"Past end of day (4:30pm), stopping simulator")
+            import sys
+            sys.exit(0)
 
         if 9 <= hour < 12:
             return 1.0
-        elif 12 <= hour < 14:
+        elif 13 <= hour < 14:  # After lunch, 1pm-2pm
             return 1.3
-        elif 14 <= hour < 17:
+        elif 14 <= hour < 16:  # 2pm-4pm
             return 1.1
-        elif 17 <= hour < 19:
-            return 1.4
         elif 19 <= hour < 22:
             return 1.2
         else:

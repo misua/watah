@@ -218,7 +218,29 @@ class KeyboardActivity:
             # Split snippet into lines and type line by line (like a real developer)
             lines = snippet_safe.split('\n')
             for line_idx, line in enumerate(lines):
-                for char in line:
+                # Handle indentation: convert leading spaces to tabs for code editors
+                leading_spaces = len(line) - len(line.lstrip(' '))
+                if leading_spaces > 0:
+                    # Most code editors use 4 spaces = 1 tab for Python, 2 spaces = 1 tab for Terraform
+                    spaces_per_tab = 4 if file_ext == ".py" else 2
+                    num_tabs = leading_spaces // spaces_per_tab
+                    remaining_spaces = leading_spaces % spaces_per_tab
+                    
+                    # Type tabs for indentation
+                    for _ in range(num_tabs):
+                        self.injector.press_key(VK_CODES["tab"])
+                        time.sleep(np.random.uniform(0.05, 0.1))
+                    
+                    # Type any remaining spaces
+                    for _ in range(remaining_spaces):
+                        self.injector.type_text(' ', delay=0.05)
+                    
+                    # Type the rest of the line (without leading spaces)
+                    line_content = line.lstrip(' ')
+                else:
+                    line_content = line
+                
+                for char in line_content:
                     try:
                         success = self.injector.type_text(char, delay=np.random.uniform(*base_delay))
                         if not success:
