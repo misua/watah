@@ -65,7 +65,7 @@ class CodeSnippetGenerator:
         '  common_tags = {',
         '    Project = "demo"',
         "terraform {",
-        "  required_version = ">= 1.0"",
+        '  required_version = ">= 1.0"',
         "  backend = {",
         '    bucket = "terraform-state"',
         "count = var.instance_count",
