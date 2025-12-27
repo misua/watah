@@ -212,8 +212,18 @@ class KeyboardActivity:
             # Split snippet into lines and type line by line (like a real developer)
             lines = snippet_safe.split('\n')
             for line_idx, line in enumerate(lines):
+                # Strip leading spaces - let editor auto-indent handle spacing
+                line_content = line.lstrip(' ')
+                
+                # Skip empty lines
+                if not line_content:
+                    if line_idx < len(lines) - 1:
+                        self.injector.press_key(VK_CODES["enter"])
+                        time.sleep(np.random.uniform(0.1, 0.2))
+                    continue
+                
                 char_index = 0
-                for char in line:
+                for char in line_content:
                     # Realistic typo/correction behavior (2% chance per character, only on letters)
                     if np.random.random() < 0.02 and char.isalpha():
                         # Make a typo: type 1-2 wrong characters
