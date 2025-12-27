@@ -189,35 +189,61 @@ class Win32InputInjector:
             logger.error(f"Failed to click mouse: {e}")
             return False
 
-    def press_key(self, vk_code: int, hold_time: float = 0.05) -> bool:
-        """Press and release a key"""
+    def press_key(self, vk_code: int, hold_time: float = 0.05, hold: bool = None) -> bool:
+        """Press and release a key, or hold/release if hold parameter is specified"""
         try:
             extra = ctypes.c_ulong(0)
 
-            ii_down = INPUT_UNION()
-            ii_down.ki = KEYBDINPUT(
-                wVk=wintypes.WORD(vk_code),
-                wScan=0,
-                dwFlags=0,
-                time=0,
-                dwExtraInfo=ctypes.pointer(extra),
-            )
-            x_down = INPUT(type=INPUT_KEYBOARD, union=ii_down)
+            if hold is True:
+                ii_down = INPUT_UNION()
+                ii_down.ki = KEYBDINPUT(
+                    wVk=vk_code,
+                    wScan=0,
+                    dwFlags=0,
+                    time=0,
+                    dwExtraInfo=ctypes.pointer(extra),
+                )
+                x_down = INPUT(type=INPUT_KEYBOARD, union=ii_down)
+                user32.SendInput(1, ctypes.pointer(x_down), ctypes.sizeof(x_down))
+                return True
+            elif hold is False:
+                ii_up = INPUT_UNION()
+                ii_up.ki = KEYBDINPUT(
+                    wVk=vk_code,
+                    wScan=0,
+                    dwFlags=KEYEVENTF_KEYUP,
+                    time=0,
+                    dwExtraInfo=ctypes.pointer(extra),
+                )
+                x_up = INPUT(type=INPUT_KEYBOARD, union=ii_up)
+                user32.SendInput(1, ctypes.pointer(x_up), ctypes.sizeof(x_up))
+                return True
+            else:
+                ii_down = INPUT_UNION()
+                ii_down.ki = KEYBDINPUT(
+                    wVk=vk_code,
+                    wScan=0,
+                    dwFlags=0,
+                    time=0,
+                    dwExtraInfo=ctypes.pointer(extra),
+                )
+                x_down = INPUT(type=INPUT_KEYBOARD, union=ii_down)
 
-            ii_up = INPUT_UNION()
-            ii_up.ki = KEYBDINPUT(
-                wVk=wintypes.WORD(vk_code),
-                wScan=0,
-                dwFlags=KEYEVENTF_KEYUP,
-                time=0,
-                dwExtraInfo=ctypes.pointer(extra),
-            )
-            x_up = INPUT(type=INPUT_KEYBOARD, union=ii_up)
+                ii_up = INPUT_UNION()
+                ii_up.ki = KEYBDINPUT(
+                    wVk=vk_code,
+                    wScan=0,
+                    dwFlags=KEYEVENTF_KEYUP,
+                    time=0,
+                    dwExtraInfo=ctypes.pointer(extra),
+                )
+                x_up = INPUT(type=INPUT_KEYBOARD, union=ii_up)
 
-            user32.SendInput(1, ctypes.pointer(x_down), ctypes.sizeof(x_down))
-            time.sleep(hold_time)
-            user32.SendInput(1, ctypes.pointer(x_up), ctypes.sizeof(x_up))
-            return True
+                user32.SendInput(1, ctypes.pointer(x_down), ctypes.sizeof(x_down))
+                time.sleep(hold_time)
+                user32.SendInput(1, ctypes.pointer(x_up), ctypes.sizeof(x_up))
+
+                return True
         except Exception as e:
             logger.error(f"Failed to press key: {e}")
             return False

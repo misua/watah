@@ -125,19 +125,53 @@ class KeyboardActivity:
         self.window_detector = WindowDetector()
 
     def type_random_text(self, length: int = None) -> bool:
-        """Type context-aware code snippet"""
+        """Type context-aware code snippet in editor"""
         try:
             logger.info("Starting keyboard typing activity")
             
             try:
+                window_title = self.window_detector.get_active_window_title()
+                logger.debug(f"Active window: {window_title}")
+                
+                if not any(editor in window_title.lower() for editor in ['vscode', 'code', 'visual studio', 'notepad', 'sublime', 'atom', 'vim', 'pycharm']):
+                    logger.warning(f"Not in code editor window: {window_title}, skipping typing")
+                    return False
+                
                 file_ext = self.window_detector.detect_file_extension()
                 logger.debug(f"Detected file extension: {file_ext}")
             except Exception as e:
                 logger.warning(f"Window detection failed: {e}, using .py default")
                 file_ext = ".py"
             
+            typing_strategy = np.random.choice(['end_of_file', 'new_line_after_current', 'new_line_before_current'])
+            
+            if typing_strategy == 'end_of_file':
+                logger.debug("Moving to end of file")
+                self.injector.press_key(VK_CODES["control"], hold=True)
+                time.sleep(0.05)
+                self.injector.press_key(VK_CODES["end"])
+                time.sleep(0.05)
+                self.injector.press_key(VK_CODES["control"], hold=False)
+                time.sleep(0.1)
+                self.injector.press_key(VK_CODES["enter"])
+                time.sleep(0.1)
+            elif typing_strategy == 'new_line_after_current':
+                logger.debug("Creating new line after current")
+                self.injector.press_key(VK_CODES["end"])
+                time.sleep(0.1)
+                self.injector.press_key(VK_CODES["enter"])
+                time.sleep(0.1)
+            else:
+                logger.debug("Creating new line before current")
+                self.injector.press_key(VK_CODES["home"])
+                time.sleep(0.1)
+                self.injector.press_key(VK_CODES["enter"])
+                time.sleep(0.1)
+                self.injector.press_key(VK_CODES["up"])
+                time.sleep(0.1)
+            
             snippet = self.snippet_generator.get_snippet(file_ext)
-            logger.info(f"Typing snippet ({file_ext}): {snippet[:50]}...")
+            logger.info(f"Typing snippet ({file_ext}) at safe location ({typing_strategy}): {snippet[:50]}...")
 
             for char in snippet:
                 if ord(char) > 127:
