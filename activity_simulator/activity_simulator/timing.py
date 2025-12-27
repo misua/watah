@@ -21,29 +21,21 @@ class TimingRandomizer:
         self.activity_history = []
 
     def get_next_interval(self, state: str = "work") -> float:
-        """Get next activity interval with multi-layered randomization"""
+        """Get next activity interval - simple and aggressive for active coding"""
         if self.intensity == "high":
-            mean = 8
+            base = 7
+            variance = 3
         elif self.intensity == "medium":
-            mean = 25
+            base = 15
+            variance = 5
         else:
-            mean = 60
+            base = 30
+            variance = 10
 
-        gaussian_base = np.random.normal(mean, mean * 0.3)
-        gaussian_base = max(5, gaussian_base)
+        interval = base + np.random.uniform(-variance, variance)
+        interval = max(3, min(20, interval))
 
-        poisson_jitter = np.random.poisson(2)
-
-        micro_jitter = np.random.uniform(-0.5, 0.5)
-
-        interval = gaussian_base + poisson_jitter + micro_jitter
-
-        interval = max(5, min(60, interval))
-
-        self.activity_history.append(interval)
-        if len(self.activity_history) > 20:
-            self.activity_history.pop(0)
-
+        logger.debug(f"Next interval calculated: {interval:.1f}s")
         return interval
 
     def get_pause_duration(self, activity_type: str) -> float:

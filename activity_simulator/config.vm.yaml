@@ -11,22 +11,22 @@ timing:
 activities:
   mouse_movement:
     enabled: true
-    weight: 0.25
+    weight: 0.15
   mouse_scroll:
     enabled: true
-    weight: 0.2
+    weight: 0.15
   keyboard_navigation:
     enabled: true
     weight: 0.15
   keyboard_typing:
     enabled: true
-    weight: 0.25
+    weight: 0.45
   tab_switching:
     enabled: true
     weight: 0.05
   composite_workflows:
     enabled: true
-    weight: 0.1
+    weight: 0.05
 
 safety:
   pause_on_user_input: false

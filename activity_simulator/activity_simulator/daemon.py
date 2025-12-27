@@ -199,10 +199,9 @@ class ActivityDaemon:
                 elapsed_since_activity = current_time - last_activity_time
 
                 if elapsed_since_activity >= next_interval:
-                    state = self.behavioral_model.get_current_state()
                     activity_name = self._select_activity()
                     if activity_name:
-                        logger.info(f"Executing activity: {activity_name} (state: {state}, interval was: {next_interval:.1f}s)")
+                        logger.info(f">>> Executing activity: {activity_name} (waited {elapsed_since_activity:.1f}s)")
                         
                         if self.pause_on_input_enabled:
                             self.currently_simulating = True
@@ -213,19 +212,20 @@ class ActivityDaemon:
                             self.currently_simulating = False
 
                         if success:
+                            logger.info(f"✓ Activity {activity_name} completed successfully")
                             pause = self.timing.get_pause_duration(activity_name)
                             time.sleep(pause)
+                        else:
+                            logger.error(f"✗ Activity {activity_name} FAILED")
 
                         last_activity_time = time.time()
-                        self.behavioral_model.transition_state()
                         
-                        next_interval = self.timing.get_next_interval(state)
-                        if self.monitor_detector.is_adaptive_mode():
-                            next_interval *= self.monitor_detector.get_adaptive_multiplier()
-                        if self.config.get("timing.enable_circadian", True):
-                            next_interval *= self.timing.get_circadian_multiplier()
+                        next_interval = self.timing.get_next_interval("work")
                         
-                        logger.info(f"Next activity scheduled in {next_interval:.1f} seconds")
+                        logger.info(f">>> Next activity in {next_interval:.1f} seconds")
+                    else:
+                        logger.error("No activity selected!")
+                        next_interval = 5
 
                 elapsed = time.time() - current_time
                 self.behavioral_model.update(elapsed)

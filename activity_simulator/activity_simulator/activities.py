@@ -127,21 +127,32 @@ class KeyboardActivity:
     def type_random_text(self, length: int = None) -> bool:
         """Type context-aware code snippet"""
         try:
-            file_ext = self.window_detector.detect_file_extension()
+            logger.info("Starting keyboard typing activity")
+            
+            try:
+                file_ext = self.window_detector.detect_file_extension()
+                logger.debug(f"Detected file extension: {file_ext}")
+            except Exception as e:
+                logger.warning(f"Window detection failed: {e}, using .py default")
+                file_ext = ".py"
+            
             snippet = self.snippet_generator.get_snippet(file_ext)
+            logger.info(f"Typing snippet ({file_ext}): {snippet[:50]}...")
 
             for char in snippet:
-                self.injector.type_text(char, delay=np.random.uniform(0.05, 0.15))
+                success = self.injector.type_text(char, delay=np.random.uniform(0.05, 0.15))
+                if not success:
+                    logger.error(f"Failed to type character: {char}")
                 if np.random.random() < 0.1:
                     time.sleep(np.random.uniform(0.3, 0.8))
             
             self.injector.press_key(VK_CODES["enter"])
             time.sleep(np.random.uniform(0.2, 0.5))
 
-            logger.debug(f"Typed snippet ({file_ext}): {snippet}")
+            logger.info(f"Successfully typed snippet: {snippet}")
             return True
         except Exception as e:
-            logger.error(f"Failed to type text: {e}")
+            logger.error(f"Failed to type text: {e}", exc_info=True)
             return False
 
     def press_navigation_key(self) -> bool:
