@@ -48,7 +48,10 @@ def run_disguised():
     )
     print(f"Stealth mode: Logging to {log_file}")
     
-    config_file = os.path.join(os.path.dirname(__file__), "config.yaml")
+    # Try config files in order: config.vm.yaml -> config.yaml -> config.example.yaml
+    config_file = os.path.join(os.path.dirname(__file__), "config.vm.yaml")
+    if not os.path.exists(config_file):
+        config_file = os.path.join(os.path.dirname(__file__), "config.yaml")
     if not os.path.exists(config_file):
         config_file = os.path.join(os.path.dirname(__file__), "config.example.yaml")
     
