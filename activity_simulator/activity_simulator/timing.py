@@ -84,21 +84,23 @@ class TimingRandomizer:
         if hour == 12:
             return float('inf')  # Effectively disables activity during lunch
         
-        # End of day: stop at random time between 4:00pm-4:30pm
-        if hour == 16:  # 4pm hour
-            # Stop at random minute between 0-30
-            import random
-            stop_minute = random.randint(0, 30)
-            if minute >= stop_minute:
-                logger.info(f"End of day reached at 4:{minute:02d}pm, stopping simulator")
-                import sys
-                sys.exit(0)
-        
-        # After 4:30pm, always stop
-        if hour >= 17 or (hour == 16 and minute > 30):
-            logger.info(f"Past end of day (4:30pm), stopping simulator")
-            import sys
-            sys.exit(0)
+        # End of day shutdown disabled for testing
+        # Can be re-enabled via configuration: timing.enable_end_of_day_shutdown
+        # # End of day: stop at random time between 4:00pm-4:30pm
+        # if hour == 16:  # 4pm hour
+        #     # Stop at random minute between 0-30
+        #     import random
+        #     stop_minute = random.randint(0, 30)
+        #     if minute >= stop_minute:
+        #         logger.info(f"End of day reached at 4:{minute:02d}pm, stopping simulator")
+        #         import sys
+        #         sys.exit(0)
+        # 
+        # # After 4:30pm, always stop
+        # if hour >= 17 or (hour == 16 and minute > 30):
+        #     logger.info(f"Past end of day (4:30pm), stopping simulator")
+        #     import sys
+        #     sys.exit(0)
 
         if 9 <= hour < 12:
             return 1.0

@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
         "base_interval": 180,
         "intensity": "medium",
         "enable_circadian": True,
+        "enable_end_of_day_shutdown": False,
     },
     "activities": {
         "mouse_movement": {"enabled": True, "weight": 0.3},

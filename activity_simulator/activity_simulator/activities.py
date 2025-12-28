@@ -115,6 +115,23 @@ class MouseActivity:
             logger.error(f"Failed to scroll: {e}")
             return False
 
+    def double_click_word(self) -> bool:
+        """Double-click at current mouse position to select word - Phase 1, Task 1.2"""
+        try:
+            # Double-click to select word
+            self.injector.click_mouse("left")
+            time.sleep(0.05)  # Brief delay between clicks
+            self.injector.click_mouse("left")
+            
+            # Selection confirmation pause (100-300ms)
+            time.sleep(np.random.uniform(0.1, 0.3))
+            
+            logger.info("Double-clicked to select word")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to double-click word: {e}")
+            return False
+
 
 class KeyboardActivity:
     """Keyboard interaction activities"""
@@ -308,6 +325,13 @@ class KeyboardActivity:
                     self.injector.press_key(VK_CODES["enter"])
                     time.sleep(np.random.uniform(0.1, 0.3))
             
+            # Phase 1, Task 1.1: Add Ctrl+S save after typing (70% probability)
+            if np.random.random() < 0.7:
+                # Brief review pause before saving
+                time.sleep(np.random.uniform(0.3, 1.0))
+                self.press_ctrl_s()
+                logger.info("Auto-saved after typing activity")
+            
             return True
         except Exception as e:
             logger.error(f"Failed to type text: {e}", exc_info=True)
@@ -418,6 +442,153 @@ class KeyboardActivity:
             logger.error(f"Failed to press Ctrl+{key}: {e}", exc_info=True)
             return False
 
+    # Developer-specific keyboard shortcuts (Phase 1 & 2)
+    
+    def press_ctrl_s(self) -> bool:
+        """Press Ctrl+S (Save) - Phase 1, Task 1.1"""
+        try:
+            result = self.press_ctrl_key_combo("s")
+            if result:
+                # Post-save pause (0.2-0.5s)
+                time.sleep(np.random.uniform(0.2, 0.5))
+                logger.info("Pressed Ctrl+S (Save)")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to press Ctrl+S: {e}")
+            return False
+
+    def press_ctrl_f(self) -> bool:
+        """Press Ctrl+F (Find/Search) - Phase 1, Task 1.3"""
+        try:
+            result = self.press_ctrl_key_combo("f")
+            if result:
+                # Pause for search dialog to open (100-200ms)
+                time.sleep(np.random.uniform(0.1, 0.2))
+                logger.info("Pressed Ctrl+F (Search)")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to press Ctrl+F: {e}")
+            return False
+
+    def press_escape(self) -> bool:
+        """Press Escape key (close dialogs) - Phase 1, Task 1.3"""
+        try:
+            self.injector.press_key(VK_CODES["escape"])
+            logger.debug("Pressed Escape")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to press Escape: {e}")
+            return False
+
+    def press_home(self) -> bool:
+        """Press Home key (line start) - Phase 1, Task 1.5"""
+        try:
+            self.injector.press_key(VK_CODES["home"])
+            # Cursor positioning pause (50-150ms)
+            time.sleep(np.random.uniform(0.05, 0.15))
+            logger.debug("Pressed Home")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to press Home: {e}")
+            return False
+
+    def press_end(self) -> bool:
+        """Press End key (line end) - Phase 1, Task 1.5"""
+        try:
+            self.injector.press_key(VK_CODES["end"])
+            # Cursor positioning pause (50-150ms)
+            time.sleep(np.random.uniform(0.05, 0.15))
+            logger.debug("Pressed End")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to press End: {e}")
+            return False
+
+    def press_ctrl_z(self) -> bool:
+        """Press Ctrl+Z (Undo) - Phase 2, Task 2.1"""
+        try:
+            result = self.press_ctrl_key_combo("z")
+            if result:
+                # Undo pause (200-400ms)
+                time.sleep(np.random.uniform(0.2, 0.4))
+                logger.info("Pressed Ctrl+Z (Undo)")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to press Ctrl+Z: {e}")
+            return False
+
+    def press_ctrl_y(self) -> bool:
+        """Press Ctrl+Y (Redo) - Phase 2, Task 2.1"""
+        try:
+            result = self.press_ctrl_key_combo("y")
+            if result:
+                # Redo pause (200-400ms)
+                time.sleep(np.random.uniform(0.2, 0.4))
+                logger.info("Pressed Ctrl+Y (Redo)")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to press Ctrl+Y: {e}")
+            return False
+
+    def press_ctrl_c(self) -> bool:
+        """Press Ctrl+C (Copy) - Phase 2, Task 2.5"""
+        try:
+            result = self.press_ctrl_key_combo("c")
+            if result:
+                # Clipboard operation pause (100-200ms)
+                time.sleep(np.random.uniform(0.1, 0.2))
+                logger.info("Pressed Ctrl+C (Copy)")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to press Ctrl+C: {e}")
+            return False
+
+    def press_ctrl_v(self) -> bool:
+        """Press Ctrl+V (Paste) - Phase 2, Task 2.5"""
+        try:
+            result = self.press_ctrl_key_combo("v")
+            if result:
+                # Paste completion pause (200-500ms)
+                time.sleep(np.random.uniform(0.2, 0.5))
+                logger.info("Pressed Ctrl+V (Paste)")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to press Ctrl+V: {e}")
+            return False
+
+    def press_ctrl_slash(self) -> bool:
+        """Press Ctrl+/ (Toggle Comment) - Phase 2, Task 2.6"""
+        try:
+            result = self.press_ctrl_key_combo("/")
+            if result:
+                # Comment operation pause (150-300ms)
+                time.sleep(np.random.uniform(0.15, 0.3))
+                logger.info("Pressed Ctrl+/ (Toggle Comment)")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to press Ctrl+/: {e}")
+            return False
+
+    def type_search_term(self) -> bool:
+        """Type a search term with deliberate speed - Phase 1, Task 1.3"""
+        try:
+            # Common code search terms
+            search_terms = [
+                "def ", "class ", "import ", "return ", "function",
+                "TODO", "FIXME", "self.", "const ", "var ", "let "
+            ]
+            term = np.random.choice(search_terms)
+            
+            # Type slowly and deliberately (80-150ms per char)
+            for char in term:
+                self.injector.type_text(char, delay=np.random.uniform(0.08, 0.15))
+            
+            logger.info(f"Typed search term: {term}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to type search term: {e}")
+            return False
+
 
 class CompositeActivity:
     """Composite activities combining multiple actions"""
@@ -497,4 +668,111 @@ class CompositeActivity:
             return True
         except Exception as e:
             logger.error(f"Failed tab switching workflow: {e}", exc_info=True)
+            return False
+    # Phase 1 Developer Workflows
+    
+    def search_workflow(self) -> bool:
+        """Simulate code search workflow - Phase 1, Task 1.3"""
+        try:
+            logger.info("Starting search workflow")
+            
+            # Open search dialog (Ctrl+F)
+            if not self.keyboard.press_ctrl_f():
+                return False
+            
+            # Type search term
+            if not self.keyboard.type_search_term():
+                return False
+            
+            # Execute search (Enter)
+            self.keyboard.injector.press_key(VK_CODES["enter"])
+            time.sleep(0.1)
+            
+            # Read search results (1-3s)
+            time.sleep(np.random.uniform(1.0, 3.0))
+            
+            # Close search dialog (Escape)
+            self.keyboard.press_escape()
+            
+            # Brief pause after closing
+            time.sleep(np.random.uniform(0.3, 0.8))
+            
+            logger.info("Completed search workflow")
+            return True
+        except Exception as e:
+            logger.error(f"Failed search workflow: {e}")
+            return False
+
+    def read_code_section(self) -> bool:
+        """Read code with scrolling and pauses - Phase 1, Task 1.4"""
+        try:
+            logger.info("Starting read-code-section")
+            
+            # Scroll 2-4 times with reading pauses
+            scroll_count = np.random.randint(2, 5)
+            for _ in range(scroll_count):
+                self.mouse.scroll_activity(np.random.choice(["up", "down"]))
+                # Reading pause (1.5-3.5s)
+                time.sleep(np.random.uniform(1.5, 3.5))
+            
+            logger.info(f"Read code section ({scroll_count} scrolls)")
+            return True
+        except Exception as e:
+            logger.error(f"Failed read code section: {e}")
+            return False
+
+    def edit_with_selection_workflow(self) -> bool:
+        """Edit with word selection - Phase 1, Task 1.2"""
+        try:
+            logger.info("Starting edit-with-selection workflow")
+            
+            # Double-click to select word
+            if not self.mouse.double_click_word():
+                return False
+            
+            # Brief pause before typing replacement
+            time.sleep(np.random.uniform(0.1, 0.3))
+            
+            # Type replacement text (short snippet)
+            snippet = self.keyboard.snippet_generator.get_snippet(".py")
+            # Take first line only
+            first_line = snippet.split('\n')[0] if snippet else "updated_value"
+            
+            for char in first_line[:30]:  # Limit to 30 chars
+                self.keyboard.injector.type_text(char, delay=np.random.uniform(0.05, 0.1))
+            
+            # Save after editing
+            time.sleep(np.random.uniform(0.3, 0.8))
+            self.keyboard.press_ctrl_s()
+            
+            logger.info("Completed edit-with-selection workflow")
+            return True
+        except Exception as e:
+            logger.error(f"Failed edit-with-selection workflow: {e}")
+            return False
+
+    def edit_at_line_boundary(self) -> bool:
+        """Edit at line start/end with Home/End - Phase 1, Task 1.5"""
+        try:
+            logger.info("Starting edit-at-line-boundary")
+            
+            # Choose Home or End
+            if np.random.random() < 0.5:
+                self.keyboard.press_home()
+                position = "start"
+            else:
+                self.keyboard.press_end()
+                position = "end"
+            
+            # Type something brief
+            text = "# " if position == "start" else "  # comment"
+            for char in text:
+                self.keyboard.injector.type_text(char, delay=np.random.uniform(0.05, 0.1))
+            
+            time.sleep(np.random.uniform(0.2, 0.5))
+            
+            logger.info(f"Completed edit at line {position}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed edit-at-line-boundary: {e}")
             return False

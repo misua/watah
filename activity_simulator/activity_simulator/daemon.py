@@ -188,15 +188,33 @@ class ActivityDaemon:
             elif activity_name == "keyboard_navigation":
                 return self.keyboard_activity.press_navigation_key()
             elif activity_name == "keyboard_typing":
+                # Phase 1, Task 1.4: Read-before-write pattern (40% probability)
+                if np.random.random() < 0.4:
+                    logger.info("Executing read-before-write pattern")
+                    self.composite_activity.read_code_section()
+                    # Thinking pause before typing
+                    time.sleep(np.random.uniform(0.5, 1.5))
                 return self.keyboard_activity.type_random_text()
             elif activity_name == "tab_switching":
                 return self.composite_activity.tab_switching_workflow()
             elif activity_name == "composite_workflows":
-                workflow = np.random.choice(["file_editing", "browsing"])
+                workflow = np.random.choice([
+                    "file_editing", "browsing", "search", 
+                    "edit_with_selection", "edit_at_line_boundary"
+                ], p=[0.3, 0.2, 0.2, 0.15, 0.15])
+                
                 if workflow == "file_editing":
                     return self.composite_activity.file_editing_workflow()
-                else:
+                elif workflow == "browsing":
                     return self.composite_activity.browsing_workflow()
+                elif workflow == "search":
+                    return self.composite_activity.search_workflow()
+                elif workflow == "edit_with_selection":
+                    return self.composite_activity.edit_with_selection_workflow()
+                elif workflow == "edit_at_line_boundary":
+                    return self.composite_activity.edit_at_line_boundary()
+                else:
+                    return False
             else:
                 logger.warning(f"Unknown activity: {activity_name}")
                 return False
