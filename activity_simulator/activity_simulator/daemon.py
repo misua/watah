@@ -277,11 +277,15 @@ class ActivityDaemon:
                     if activity_name:
                         logger.info(f">>> Executing activity: {activity_name} (waited {elapsed_since_activity:.1f}s)")
                         
+                        # Set simulation flag BEFORE activity starts
                         if self.pause_on_input_enabled:
                             self.currently_simulating = True
+                            # Small delay to ensure listeners see the flag
+                            time.sleep(0.01)
                         
                         success = self._execute_activity(activity_name)
                         
+                        # Clear simulation flag AFTER activity completes
                         if self.pause_on_input_enabled:
                             self.currently_simulating = False
 

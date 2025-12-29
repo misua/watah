@@ -60,6 +60,12 @@ class MouseActivity:
     def move_mouse_smooth(self, target_x: int, target_y: int) -> bool:
         """Move mouse smoothly along Bezier curve"""
         try:
+            # Check if daemon is paused before starting
+            daemon_instance = getattr(self.injector, '_daemon_ref', None)
+            if daemon_instance and hasattr(daemon_instance, 'paused') and daemon_instance.paused:
+                logger.debug("Daemon is paused, skipping mouse movement")
+                return False
+            
             start_x, start_y = self.injector.get_cursor_position()
             points = self.generate_bezier_curve((start_x, start_y), (target_x, target_y))
 
@@ -229,6 +235,11 @@ class KeyboardActivity:
             # Split snippet into lines and type line by line (like a real developer)
             lines = snippet_safe.split('\n')
             for line_idx, line in enumerate(lines):
+                # Check if daemon is paused (user input detected)
+                if daemon_instance and hasattr(daemon_instance, 'paused') and daemon_instance.paused:
+                    logger.info("User input detected during typing, stopping activity")
+                    return False
+                
                 # Strip leading spaces - let editor auto-indent handle spacing
                 line_content = line.lstrip(' ')
                 
@@ -292,6 +303,12 @@ class KeyboardActivity:
                                 time.sleep(np.random.uniform(0.02, 0.05))
                     
                     char_index += 1
+                    
+                    # Periodic check for pause (every 10 chars)
+                    if char_index % 10 == 0:
+                        if daemon_instance and hasattr(daemon_instance, 'paused') and daemon_instance.paused:
+                            logger.info("User input detected during typing, stopping activity")
+                            return False
                 
                 # Press Enter at end of line (except for last line)
                 if line_idx < len(lines) - 1:
