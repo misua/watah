@@ -197,6 +197,8 @@ class ActivityDaemon:
                 return self.keyboard_activity.type_random_text()
             elif activity_name == "tab_switching":
                 return self.composite_activity.tab_switching_workflow()
+            elif activity_name == "brave_browsing":
+                return self.composite_activity.brave_browsing_workflow()
             elif activity_name == "composite_workflows":
                 workflow = np.random.choice([
                     "file_editing", "browsing", "search", 
@@ -245,8 +247,15 @@ class ActivityDaemon:
             next_interval *= self.monitor_detector.get_adaptive_multiplier()
         
         if self.config.get("timing.enable_circadian", True):
-            circadian_mult = self.timing.get_circadian_multiplier()
-            next_interval *= circadian_mult
+            enable_end_of_day = self.config.get("timing.enable_end_of_day_shutdown", False)
+            circadian_mult = self.timing.get_circadian_multiplier(enable_end_of_day)
+            
+            # If circadian multiplier is inf, skip this activity cycle
+            if circadian_mult == float('inf'):
+                logger.info("Natural break period - skipping activity")
+                next_interval = 60  # Check again in 1 minute
+            else:
+                next_interval *= circadian_mult
         
         logger.info(f"First activity scheduled in {next_interval:.1f} seconds")
 
@@ -291,6 +300,17 @@ class ActivityDaemon:
                         last_activity_time = time.time()
                         
                         next_interval = self.timing.get_next_interval("work")
+                        
+                        # Apply circadian rhythm and check for break periods
+                        if self.config.get("timing.enable_circadian", True):
+                            enable_end_of_day = self.config.get("timing.enable_end_of_day_shutdown", False)
+                            circadian_mult = self.timing.get_circadian_multiplier(enable_end_of_day)
+                            
+                            if circadian_mult == float('inf'):
+                                logger.info("Entering natural break period")
+                                next_interval = 60  # Check again in 1 minute
+                            else:
+                                next_interval *= circadian_mult
                         
                         logger.info(f">>> Next activity in {next_interval:.1f} seconds")
                     else:

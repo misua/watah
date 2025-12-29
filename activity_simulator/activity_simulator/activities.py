@@ -776,3 +776,41 @@ class CompositeActivity:
         except Exception as e:
             logger.error(f"Failed edit-at-line-boundary: {e}")
             return False
+
+    def brave_browsing_workflow(self) -> bool:
+        """Switch to Brave browser and scroll - natural browsing behavior"""
+        try:
+            logger.info("Starting Brave browsing workflow")
+            
+            # Alt+Tab to switch windows (likely to Brave if it's open)
+            logger.info("Pressing Alt+Tab to switch to Brave browser")
+            self.keyboard.injector.press_key(VK_CODES["alt"], hold=True)
+            time.sleep(0.05)
+            self.keyboard.injector.press_key(VK_CODES["tab"], hold_time=0.05)
+            time.sleep(0.1)
+            self.keyboard.injector.press_key(VK_CODES["alt"], hold=False)
+            
+            # Wait for window switch to complete
+            time.sleep(np.random.uniform(0.3, 0.6))
+            
+            # Now in Brave - do natural scrolling behavior
+            scroll_count = np.random.randint(3, 8)  # 3-7 scrolls
+            for i in range(scroll_count):
+                # Scroll down or up (mostly down)
+                direction = "down" if np.random.random() < 0.8 else "up"
+                self.mouse.scroll_activity(direction)
+                
+                # Natural pause between scrolls (reading content)
+                time.sleep(np.random.uniform(1.5, 4.0))
+                
+                # Occasional small mouse movement (adjusting position)
+                if np.random.random() < 0.3:
+                    self.mouse.small_mouse_jitter()
+                    time.sleep(np.random.uniform(0.3, 0.8))
+            
+            logger.info(f"Completed Brave browsing workflow ({scroll_count} scrolls)")
+            return True
+        except Exception as e:
+            logger.error(f"Failed Brave browsing workflow: {e}")
+            return False
+            return False

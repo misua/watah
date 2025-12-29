@@ -75,43 +75,62 @@ class TimingRandomizer:
         break_probability = min(0.8, (work_duration - 1200) / 1800)
         return np.random.random() < break_probability
 
-    def get_circadian_multiplier(self) -> float:
-        """Get activity multiplier based on time of day"""
+    def get_circadian_multiplier(self, enable_end_of_day: bool = False) -> float:
+        """Get activity multiplier based on time of day
+        
+        Returns:
+            float: Multiplier for activity interval (higher = less frequent)
+                   Returns float('inf') during natural break periods
+                   Exits process if past end of day when enabled
+        """
         hour = time.localtime().tm_hour
         minute = time.localtime().tm_min
 
-        # Lunch break: 12pm-1pm (no activity)
+        # Lunch break: 12:00pm-1:00pm (no activity)
         if hour == 12:
+            logger.debug("Lunch break period: no activity")
             return float('inf')  # Effectively disables activity during lunch
         
-        # End of day shutdown disabled for testing
-        # Can be re-enabled via configuration: timing.enable_end_of_day_shutdown
-        # # End of day: stop at random time between 4:00pm-4:30pm
-        # if hour == 16:  # 4pm hour
-        #     # Stop at random minute between 0-30
-        #     import random
-        #     stop_minute = random.randint(0, 30)
-        #     if minute >= stop_minute:
-        #         logger.info(f"End of day reached at 4:{minute:02d}pm, stopping simulator")
-        #         import sys
-        #         sys.exit(0)
-        # 
-        # # After 4:30pm, always stop
-        # if hour >= 17 or (hour == 16 and minute > 30):
-        #     logger.info(f"Past end of day (4:30pm), stopping simulator")
-        #     import sys
-        #     sys.exit(0)
+        # Mid-morning coffee break: 10:30am-10:45am
+        if hour == 10 and 30 <= minute < 45:
+            logger.debug("Morning coffee break: no activity")
+            return float('inf')
+        
+        # Afternoon coffee break: 3:00pm-3:15pm
+        if hour == 15 and 0 <= minute < 15:
+            logger.debug("Afternoon coffee break: no activity")
+            return float('inf')
+        
+        # End of day shutdown (if enabled)
+        if enable_end_of_day:
+            # End of day: stop at random time between 4:00pm-4:30pm
+            if not hasattr(self, '_stop_minute'):
+                import random
+                self._stop_minute = random.randint(0, 30)
+                logger.info(f"End of day scheduled at 4:{self._stop_minute:02d}pm")
+            
+            if hour == 16 and minute >= self._stop_minute:
+                logger.info(f"End of day reached at {hour}:{minute:02d}, stopping simulator")
+                import sys
+                sys.exit(0)
+            
+            # After 4:30pm, always stop
+            if hour >= 17 or (hour == 16 and minute > 30):
+                logger.info(f"Past end of day (4:30pm), stopping simulator")
+                import sys
+                sys.exit(0)
 
+        # Work periods with different intensity levels
         if 9 <= hour < 12:
-            return 1.0
+            return 1.0  # Morning: normal activity
         elif 13 <= hour < 14:  # After lunch, 1pm-2pm
-            return 1.3
+            return 1.3  # Slightly slower after lunch
         elif 14 <= hour < 16:  # 2pm-4pm
-            return 1.1
+            return 1.1  # Normal afternoon
         elif 19 <= hour < 22:
-            return 1.2
+            return 1.2  # Evening work
         else:
-            return 2.0
+            return 2.0  # Off-hours: very slow activity
 
 
 class MarkovChain:

@@ -6,7 +6,8 @@ daemon:
 timing:
   base_interval: 8
   intensity: high
-  enable_circadian: false
+  enable_circadian: true  # Enable human-like daily patterns
+  enable_end_of_day_shutdown: true  # Stop between 4:00-4:30pm
 
 activities:
   mouse_movement:
@@ -27,6 +28,9 @@ activities:
   composite_workflows:
     enabled: true
     weight: 0.05
+  brave_browsing:
+    enabled: true
+    weight: 0.10  # Switch to Brave and scroll
 
 safety:
   pause_on_user_input: false
