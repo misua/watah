@@ -69,7 +69,7 @@ class ActivityDaemon:
         self.currently_simulating = False
         self.manual_pause_until = 0  # Timestamp for manual pause end
         self.ctrl_pressed = False
-        self.f5_pressed = False
+        self.shift_pressed = False
 
         def on_mouse_activity(*args):
             # Ignore simulated input, only detect real user input
@@ -81,18 +81,21 @@ class ActivityDaemon:
                 logger.info("User input detected (mouse), pausing simulation")
 
         def on_keyboard_activity(key):
-            # Check for Ctrl+F5 hotkey - works even during simulation
+            # Check for Ctrl+Shift+F12 emergency stop hotkey - works even during simulation
             try:
                 # Check if Ctrl key
                 if key == kb.Key.ctrl_l or key == kb.Key.ctrl_r:
                     self.ctrl_pressed = True
-                # Check if F5 key
-                elif hasattr(key, 'name') and key.name == 'f5':
-                    if self.ctrl_pressed:
-                        # Ctrl+F5 pressed - manual pause for 5 minutes
-                        self.manual_pause_until = time.time() + 300  # 5 minutes
+                # Check if Shift key
+                elif key == kb.Key.shift_l or key == kb.Key.shift_r:
+                    self.shift_pressed = True
+                # Check if F12 key
+                elif hasattr(key, 'name') and key.name == 'f12':
+                    if self.ctrl_pressed and self.shift_pressed:
+                        # Ctrl+Shift+F12 pressed - emergency stop for 10 minutes
+                        self.manual_pause_until = time.time() + 600  # 10 minutes
                         self.paused = True
-                        logger.info("Ctrl+F5 pressed! Pausing for 5 minutes")
+                        logger.critical("EMERGENCY STOP: Ctrl+Shift+F12 pressed! Pausing for 10 minutes")
                         return
             except AttributeError:
                 pass
@@ -106,10 +109,12 @@ class ActivityDaemon:
                 logger.info("User input detected (keyboard), pausing simulation")
         
         def on_keyboard_release(key):
-            # Track Ctrl key release
+            # Track Ctrl and Shift key release
             try:
                 if key == kb.Key.ctrl_l or key == kb.Key.ctrl_r:
                     self.ctrl_pressed = False
+                elif key == kb.Key.shift_l or key == kb.Key.shift_r:
+                    self.shift_pressed = False
             except AttributeError:
                 pass
 

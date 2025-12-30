@@ -152,22 +152,31 @@ class KeyboardActivity:
         try:
             logger.info("Starting keyboard typing activity")
             
-            # Check if we should stop (user input detected)
-            from .daemon import ActivityDaemon
-            daemon_instance = getattr(self.injector, '_daemon_ref', None)
-            
-            # Try to detect file type from window, but default to Python if it fails
-            file_ext = ".py"
+            # CRITICAL: Only type in VSCode or IDE windows
             try:
                 window_title = self.window_detector.get_active_window_title()
-                if window_title:
-                    logger.debug(f"Active window: {window_title}")
-                    detected_ext = self.window_detector.detect_file_extension()
-                    if detected_ext:
-                        file_ext = detected_ext
-                        logger.debug(f"Detected file extension: {file_ext}")
+                logger.debug(f"Active window: {window_title}")
+                
+                # Whitelist: ONLY these applications are allowed for typing
+                allowed_apps = ['visual studio code', 'vscode', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
+                is_allowed = any(app in window_title.lower() for app in allowed_apps)
+                
+                # Blacklist: NEVER type in these applications
+                blocked_apps = ['chrome', 'edge', 'firefox', 'brave', 'opera', 'safari', 'outlook', 'mail', 'gmail', 'powershell', 'cmd', 'terminal', 'command prompt', 'windows powershell', 'login', 'sign in', 'password']
+                is_blocked = any(app in window_title.lower() for app in blocked_apps)
+                
+                if is_blocked or not is_allowed:
+                    logger.warning(f"Typing blocked - not in IDE window: {window_title}")
+                    return False
+                
+                logger.info(f"Typing allowed in IDE: {window_title}")
+                
+                # Detect file extension
+                file_ext = self.window_detector.detect_file_extension() or ".py"
+                logger.debug(f"Detected file extension: {file_ext}")
             except Exception as e:
-                logger.debug(f"Window detection failed: {e}, using .py default")
+                logger.error(f"Window detection failed: {e}, skipping typing for safety")
+                return False
             
             # Prefer end of file to avoid destroying code
             typing_strategy = np.random.choice(

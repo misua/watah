@@ -35,7 +35,7 @@ activities:
 safety:
   pause_on_user_input: false
   pause_duration: 30
-  emergency_stop_hotkey: ctrl+alt+q
+  emergency_stop_hotkey: ctrl+shift+f12
   safe_zone: current_screen
 
 anti_detection:
