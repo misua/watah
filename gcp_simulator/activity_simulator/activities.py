@@ -155,27 +155,32 @@ class KeyboardActivity:
             # CRITICAL: Only type in VSCode or IDE windows
             try:
                 window_title = self.window_detector.get_active_window_title()
-                logger.debug(f"Active window: {window_title}")
+                logger.info(f"Typing check - Active window: '{window_title}'")
                 
                 # Whitelist: ONLY these applications are allowed for typing
-                allowed_apps = ['visual studio code', 'vscode', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
+                # Added 'code' for VSCode which often shows as just "Code"
+                allowed_apps = ['code', 'visual studio code', 'vscode', 'vs code', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
                 is_allowed = any(app in window_title.lower() for app in allowed_apps)
                 
                 # Blacklist: NEVER type in these applications
                 blocked_apps = ['chrome', 'edge', 'firefox', 'brave', 'opera', 'safari', 'outlook', 'mail', 'gmail', 'powershell', 'cmd', 'terminal', 'command prompt', 'windows powershell', 'login', 'sign in', 'password']
                 is_blocked = any(app in window_title.lower() for app in blocked_apps)
                 
-                if is_blocked or not is_allowed:
-                    logger.warning(f"Typing blocked - not in IDE window: {window_title}")
+                if is_blocked:
+                    logger.warning(f"Typing BLOCKED - dangerous window: {window_title}")
                     return False
                 
-                logger.info(f"Typing allowed in IDE: {window_title}")
+                if not is_allowed:
+                    logger.warning(f"Typing SKIPPED - not in IDE window: {window_title}")
+                    return False
+                
+                logger.info(f"✓ Typing ALLOWED in IDE: {window_title}")
                 
                 # Detect file extension
                 file_ext = self.window_detector.detect_file_extension() or ".py"
                 logger.debug(f"Detected file extension: {file_ext}")
             except Exception as e:
-                logger.error(f"Window detection failed: {e}, skipping typing for safety")
+                logger.error(f"Window detection FAILED: {e}, skipping typing for safety")
                 return False
             
             # Prefer end of file to avoid destroying code
@@ -368,23 +373,27 @@ class KeyboardActivity:
         # CRITICAL: Only allow navigation keys in IDEs, not in browsers
         try:
             window_title = self.window_detector.get_active_window_title()
-            logger.debug(f"Navigation key check - Active window: {window_title}")
+            logger.info(f"Navigation check - Active window: '{window_title}'")
             
             # Whitelist: ONLY these applications are allowed for keyboard navigation
-            allowed_apps = ['visual studio code', 'vscode', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
+            allowed_apps = ['code', 'visual studio code', 'vscode', 'vs code', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
             is_allowed = any(app in window_title.lower() for app in allowed_apps)
             
             # Blacklist: NEVER use keyboard shortcuts in these applications
             blocked_apps = ['chrome', 'edge', 'firefox', 'brave', 'opera', 'safari', 'outlook', 'mail', 'gmail', 'powershell', 'cmd', 'terminal']
             is_blocked = any(app in window_title.lower() for app in blocked_apps)
             
-            if is_blocked or not is_allowed:
-                logger.warning(f"Navigation keys blocked - not in IDE window: {window_title}")
+            if is_blocked:
+                logger.warning(f"Navigation BLOCKED - dangerous window: {window_title}")
                 return False
             
-            logger.info(f"Navigation keys allowed in IDE: {window_title}")
+            if not is_allowed:
+                logger.warning(f"Navigation SKIPPED - not in IDE: {window_title}")
+                return False
+            
+            logger.info(f"✓ Navigation ALLOWED in IDE: {window_title}")
         except Exception as e:
-            logger.error(f"Window detection failed: {e}, skipping navigation for safety")
+            logger.error(f"Window detection FAILED: {e}, skipping navigation for safety")
             return False
         
         keys = ["up", "down", "left", "right", "pageup", "pagedown", "home", "end"]
@@ -497,23 +506,26 @@ class KeyboardActivity:
         # CRITICAL: Only allow Ctrl+S in IDEs, not in browsers
         try:
             window_title = self.window_detector.get_active_window_title()
-            logger.debug(f"Ctrl+S check - Active window: {window_title}")
             
             # Whitelist: ONLY these applications are allowed for Ctrl+S
-            allowed_apps = ['visual studio code', 'vscode', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
+            allowed_apps = ['code', 'visual studio code', 'vscode', 'vs code', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
             is_allowed = any(app in window_title.lower() for app in allowed_apps)
             
             # Blacklist: NEVER use Ctrl+S in these applications
             blocked_apps = ['chrome', 'edge', 'firefox', 'brave', 'opera', 'safari', 'outlook', 'mail', 'gmail', 'powershell', 'cmd', 'terminal']
             is_blocked = any(app in window_title.lower() for app in blocked_apps)
             
-            if is_blocked or not is_allowed:
-                logger.warning(f"Ctrl+S blocked - not in IDE window: {window_title}")
+            if is_blocked:
+                logger.warning(f"Ctrl+S BLOCKED - dangerous window: {window_title}")
                 return False
             
-            logger.info(f"Ctrl+S allowed in IDE: {window_title}")
+            if not is_allowed:
+                logger.warning(f"Ctrl+S SKIPPED - not in IDE: {window_title}")
+                return False
+            
+            logger.info(f"✓ Ctrl+S ALLOWED in IDE: {window_title}")
         except Exception as e:
-            logger.error(f"Window detection failed: {e}, skipping Ctrl+S for safety")
+            logger.error(f"Window detection FAILED: {e}, skipping Ctrl+S for safety")
             return False
         
         try:
@@ -534,18 +546,22 @@ class KeyboardActivity:
             window_title = self.window_detector.get_active_window_title()
             
             # Whitelist: ONLY these applications are allowed for Ctrl+F
-            allowed_apps = ['visual studio code', 'vscode', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
+            allowed_apps = ['code', 'visual studio code', 'vscode', 'vs code', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
             is_allowed = any(app in window_title.lower() for app in allowed_apps)
             
             # Blacklist: NEVER use Ctrl+F in these applications
             blocked_apps = ['chrome', 'edge', 'firefox', 'brave', 'opera', 'safari', 'outlook', 'mail', 'gmail', 'powershell', 'cmd', 'terminal']
             is_blocked = any(app in window_title.lower() for app in blocked_apps)
             
-            if is_blocked or not is_allowed:
-                logger.warning(f"Ctrl+F blocked - not in IDE window: {window_title}")
+            if is_blocked:
+                logger.warning(f"Ctrl+F BLOCKED - dangerous window: {window_title}")
+                return False
+            
+            if not is_allowed:
+                logger.warning(f"Ctrl+F SKIPPED - not in IDE: {window_title}")
                 return False
         except Exception as e:
-            logger.error(f"Window detection failed: {e}, skipping Ctrl+F for safety")
+            logger.error(f"Window detection FAILED: {e}, skipping Ctrl+F for safety")
             return False
         
         try:
