@@ -1,0 +1,29 @@
+# Click Simulator Configuration
+
+timing:
+  min_interval: 5    # Minimum seconds between actions
+  max_interval: 15   # Maximum seconds between actions
+
+activities:
+  click_content:     # Click in main content area (resources, links)
+    weight: 0.40
+  click_sidebar:     # Click in left sidebar menu
+    weight: 0.30
+  switch_tab:        # Switch browser tabs with Ctrl+Tab
+    weight: 0.20
+  scroll_down:       # Scroll down to see more content
+    weight: 0.08
+  scroll_up:         # Scroll up
+    weight: 0.02
+
+# Safe click zones (percentage of screen)
+zones:
+  sidebar:
+    x_range: [0.05, 0.20]  # Left 5-20% of screen
+    y_range: [0.30, 0.80]  # Middle 30-80% vertically
+  content:
+    x_range: [0.25, 0.85]  # Center 25-85% of screen
+    y_range: [0.25, 0.75]  # Middle 25-75% vertically
+  tabs:
+    x_range: [0.15, 0.70]  # Top center 15-70%
+    y_range: [0.08, 0.12]  # Top 8-12% (tab area)
