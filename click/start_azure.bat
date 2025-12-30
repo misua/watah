@@ -8,9 +8,9 @@ if exist ".azconfig.pid" (
     exit /b 1
 )
 
-REM Activate virtual environment from activity_simulator
-if exist ..\activity_simulator\venv\Scripts\activate.bat (
-    call ..\activity_simulator\venv\Scripts\activate.bat
+REM Activate virtual environment from gcp_simulator
+if exist ..\gcp_simulator\venv\Scripts\activate.bat (
+    call ..\gcp_simulator\venv\Scripts\activate.bat
 )
 
 REM Run in background with hidden window using pythonw (no console)

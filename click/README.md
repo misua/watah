@@ -13,15 +13,15 @@ A Windows utility that assists with Azure portal navigation and resource managem
 
 ## Installation
 
-This tool uses the existing virtual environment from `activity_simulator`:
+This tool uses the existing virtual environment from `gcp_simulator`:
 
 ```bash
 cd /home/hn/Desktop/watah/click
 
 # Activate the existing venv
-source ../activity_simulator/venv/bin/activate  # Linux/Mac
+source ../gcp_simulator/venv/bin/activate  # Linux/Mac
 # or
-..\activity_simulator\venv\Scripts\activate  # Windows
+..\gcp_simulator\venv\Scripts\activate  # Windows
 
 # Install required packages (if not already installed)
 pip install numpy pyyaml pywin32
