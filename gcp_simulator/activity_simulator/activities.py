@@ -364,7 +364,29 @@ class KeyboardActivity:
             return False
 
     def press_navigation_key(self) -> bool:
-        """Press navigation key (arrow, page up/down, etc.)"""
+        """Press navigation key (arrow, page up/down, etc.) - ONLY in IDEs"""
+        # CRITICAL: Only allow navigation keys in IDEs, not in browsers
+        try:
+            window_title = self.window_detector.get_active_window_title()
+            logger.debug(f"Navigation key check - Active window: {window_title}")
+            
+            # Whitelist: ONLY these applications are allowed for keyboard navigation
+            allowed_apps = ['visual studio code', 'vscode', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
+            is_allowed = any(app in window_title.lower() for app in allowed_apps)
+            
+            # Blacklist: NEVER use keyboard shortcuts in these applications
+            blocked_apps = ['chrome', 'edge', 'firefox', 'brave', 'opera', 'safari', 'outlook', 'mail', 'gmail', 'powershell', 'cmd', 'terminal']
+            is_blocked = any(app in window_title.lower() for app in blocked_apps)
+            
+            if is_blocked or not is_allowed:
+                logger.warning(f"Navigation keys blocked - not in IDE window: {window_title}")
+                return False
+            
+            logger.info(f"Navigation keys allowed in IDE: {window_title}")
+        except Exception as e:
+            logger.error(f"Window detection failed: {e}, skipping navigation for safety")
+            return False
+        
         keys = ["up", "down", "left", "right", "pageup", "pagedown", "home", "end"]
         key = np.random.choice(keys)
 
@@ -471,7 +493,29 @@ class KeyboardActivity:
     # Developer-specific keyboard shortcuts (Phase 1 & 2)
     
     def press_ctrl_s(self) -> bool:
-        """Press Ctrl+S (Save) - Phase 1, Task 1.1"""
+        """Press Ctrl+S (Save) - Phase 1, Task 1.1 - ONLY in IDEs"""
+        # CRITICAL: Only allow Ctrl+S in IDEs, not in browsers
+        try:
+            window_title = self.window_detector.get_active_window_title()
+            logger.debug(f"Ctrl+S check - Active window: {window_title}")
+            
+            # Whitelist: ONLY these applications are allowed for Ctrl+S
+            allowed_apps = ['visual studio code', 'vscode', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
+            is_allowed = any(app in window_title.lower() for app in allowed_apps)
+            
+            # Blacklist: NEVER use Ctrl+S in these applications
+            blocked_apps = ['chrome', 'edge', 'firefox', 'brave', 'opera', 'safari', 'outlook', 'mail', 'gmail', 'powershell', 'cmd', 'terminal']
+            is_blocked = any(app in window_title.lower() for app in blocked_apps)
+            
+            if is_blocked or not is_allowed:
+                logger.warning(f"Ctrl+S blocked - not in IDE window: {window_title}")
+                return False
+            
+            logger.info(f"Ctrl+S allowed in IDE: {window_title}")
+        except Exception as e:
+            logger.error(f"Window detection failed: {e}, skipping Ctrl+S for safety")
+            return False
+        
         try:
             result = self.press_ctrl_key_combo("s")
             if result:
@@ -484,7 +528,26 @@ class KeyboardActivity:
             return False
 
     def press_ctrl_f(self) -> bool:
-        """Press Ctrl+F (Find/Search) - Phase 1, Task 1.3"""
+        """Press Ctrl+F (Find/Search) - Phase 1, Task 1.3 - ONLY in IDEs"""
+        # CRITICAL: Only allow Ctrl+F in IDEs, not in browsers
+        try:
+            window_title = self.window_detector.get_active_window_title()
+            
+            # Whitelist: ONLY these applications are allowed for Ctrl+F
+            allowed_apps = ['visual studio code', 'vscode', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
+            is_allowed = any(app in window_title.lower() for app in allowed_apps)
+            
+            # Blacklist: NEVER use Ctrl+F in these applications
+            blocked_apps = ['chrome', 'edge', 'firefox', 'brave', 'opera', 'safari', 'outlook', 'mail', 'gmail', 'powershell', 'cmd', 'terminal']
+            is_blocked = any(app in window_title.lower() for app in blocked_apps)
+            
+            if is_blocked or not is_allowed:
+                logger.warning(f"Ctrl+F blocked - not in IDE window: {window_title}")
+                return False
+        except Exception as e:
+            logger.error(f"Window detection failed: {e}, skipping Ctrl+F for safety")
+            return False
+        
         try:
             result = self.press_ctrl_key_combo("f")
             if result:
