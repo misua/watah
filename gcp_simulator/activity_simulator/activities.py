@@ -157,18 +157,33 @@ class KeyboardActivity:
                 window_title = self.window_detector.get_active_window_title()
                 logger.info(f"Typing check - Active window: '{window_title}'")
                 
-                # Whitelist: ONLY these applications are allowed for typing
-                # Added 'code' for VSCode which often shows as just "Code"
-                allowed_apps = ['code', 'visual studio code', 'vscode', 'vs code', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs']
-                is_allowed = any(app in window_title.lower() for app in allowed_apps)
-                
-                # Blacklist: NEVER type in these applications
+                # Blacklist: NEVER type in these applications (check first)
                 blocked_apps = ['chrome', 'edge', 'firefox', 'brave', 'opera', 'safari', 'outlook', 'mail', 'gmail', 'powershell', 'cmd', 'terminal', 'command prompt', 'windows powershell', 'login', 'sign in', 'password']
                 is_blocked = any(app in window_title.lower() for app in blocked_apps)
                 
                 if is_blocked:
                     logger.warning(f"Typing BLOCKED - dangerous window: {window_title}")
                     return False
+                
+                # Whitelist: ONLY these applications are allowed for typing
+                # Added 'code' for VSCode which often shows as just "Code"
+                allowed_apps = ['code', 'visual studio code', 'vscode', 'vs code', 'pycharm', 'intellij', 'sublime text', 'atom', 'notepad++', 'vim', 'emacs', '.py', '.tf', '.js', '.ts']
+                is_allowed = any(app in window_title.lower() for app in allowed_apps)
+                
+                # If window title is empty or "System Idle Process", try Alt+Tab to switch to VSCode
+                if not window_title or 'idle' in window_title.lower() or 'system' in window_title.lower():
+                    logger.warning(f"Window detection unclear: '{window_title}' - attempting Alt+Tab to VSCode")
+                    # Alt+Tab to switch windows
+                    self.injector.press_key(VK_CODES["alt"], hold=True)
+                    time.sleep(0.05)
+                    self.injector.press_key(VK_CODES["tab"], hold_time=0.05)
+                    time.sleep(0.1)
+                    self.injector.press_key(VK_CODES["alt"], hold=False)
+                    time.sleep(0.5)
+                    # Re-check window
+                    window_title = self.window_detector.get_active_window_title()
+                    logger.info(f"After Alt+Tab, window: '{window_title}'")
+                    is_allowed = any(app in window_title.lower() for app in allowed_apps)
                 
                 if not is_allowed:
                     logger.warning(f"Typing SKIPPED - not in IDE window: {window_title}")
