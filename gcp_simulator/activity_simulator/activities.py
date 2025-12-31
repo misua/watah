@@ -244,6 +244,9 @@ class KeyboardActivity:
             
             logger.info(f"Typing snippet ({file_ext}) at safe location ({typing_strategy}): {snippet_safe[:50]}...")
 
+            # Get daemon instance for pause checking
+            daemon_instance = getattr(self.injector, '_daemon_ref', None)
+
             # Realistic typing speed: 60-120 WPM = 5-10 chars/sec
             # Faster bursts when in the zone, slower when thinking
             typing_mode = np.random.choice(['burst', 'normal', 'thinking'], p=[0.4, 0.4, 0.2])
@@ -929,8 +932,17 @@ class CompositeActivity:
                     time.sleep(np.random.uniform(0.3, 0.8))
             
             logger.info(f"Completed Brave browsing workflow ({scroll_count} scrolls)")
+            
+            # Switch back to VSCode after browsing
+            logger.info("Switching back to VSCode after browsing")
+            self.keyboard.injector.press_key(VK_CODES["alt"], hold=True)
+            time.sleep(0.05)
+            self.keyboard.injector.press_key(VK_CODES["tab"], hold_time=0.05)
+            time.sleep(0.1)
+            self.keyboard.injector.press_key(VK_CODES["alt"], hold=False)
+            time.sleep(0.3)
+            
             return True
         except Exception as e:
             logger.error(f"Failed Brave browsing workflow: {e}")
-            return False
             return False
