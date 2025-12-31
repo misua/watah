@@ -1,5 +1,5 @@
 @echo off
-REM Start the activity simulator in hidden/disguised mode
+REM GCP Activity Monitor - Start monitoring service
 cd /d "%~dp0"
 
 REM Check if already running via PID file
@@ -23,22 +23,6 @@ if exist "..\venv\Scripts\activate.bat" (
     call "venv\Scripts\activate.bat"
 )
 
-REM Run stealth_runner.py with python (not pythonw) for debugging
-REM Use pythonw for true stealth mode once working
-echo Starting activity simulator...
-start /B /MIN python stealth_runner.py
-
-REM Wait for PID file to be created
-timeout /t 3 /nobreak >nul
-
-REM Verify it started
-if exist "activity_sim.pid" (
-    for /f %%i in (activity_sim.pid) do set PID=%%i
-    echo Service started successfully (PID: %PID%)
-    echo %PID% > .runtime.pid
-    echo Log file: activity_sim.log or activity_sim_stealth.log
-) else (
-    echo ERROR: Service failed to start!
-    echo Check activity_sim_stealth.log for errors
-    exit /b 1
-)
+REM Run the monitoring service directly (not in background for debugging)
+echo Starting GCP monitoring service...
+python gcp_monitoring.py
