@@ -43,8 +43,8 @@ def run_disguised():
     set_process_name(disguise_name)
     
     # Now run the actual daemon
-    from activity_simulator.config import Config
-    from activity_simulator.daemon import DaemonController
+    from gcp_utils.config import Config
+    from gcp_utils.daemon import DaemonController
     import logging
     
     # Log to BOTH file AND console

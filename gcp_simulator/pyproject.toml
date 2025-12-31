@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "activity-simulator"
+name = "gcp-utils"
 version = "0.1.0"
-description = "Windows activity simulator with advanced anti-detection for monitoring software"
+description = "GCP utility tools for cloud resource monitoring"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Activity Simulator Team"}
+    {name = "GCP Utils Team"}
 ]
 dependencies = [
     "pywin32>=306",
@@ -23,7 +23,7 @@ dependencies = [
 ]
 
 [project.scripts]
-activity-sim = "activity_simulator.cli:main"
+gcp-util = "gcp_utils.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -35,7 +35,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["activity_simulator*"]
+include = ["gcp_utils*"]
 
 [tool.black]
 line-length = 100

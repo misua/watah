@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="activity-simulator",
+    name="gcp-utils",
     version="0.1.0",
     packages=find_packages(),
     install_requires=[
@@ -15,7 +15,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "activity-sim=activity_simulator.cli:main",
+            "gcp-util=gcp_utils.cli:main",
         ],
     },
     python_requires=">=3.8",
