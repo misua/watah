@@ -25,6 +25,9 @@ def run_disguised():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
     
+    print(f"[GCP Monitor] Starting...")
+    print(f"[GCP Monitor] Working directory: {script_dir}")
+    
     # Set innocent-looking process names
     process_names = [
         "Adobe Update Service",
@@ -44,16 +47,28 @@ def run_disguised():
     from activity_simulator.daemon import DaemonController
     import logging
     
-    # Log to file at DEBUG level for debugging
+    # Log to BOTH file AND console
     log_file = os.path.join(script_dir, "activity_sim_stealth.log")
-    logging.basicConfig(
-        level=logging.DEBUG,  # Log everything to file
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[logging.FileHandler(log_file, encoding='utf-8')],
-    )
+    
+    # Create formatters and handlers
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    
+    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.DEBUG)
+    
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(logging.INFO)  # Only INFO and above to console
+    
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+    
     logger = logging.getLogger(__name__)
-    logger.info(f"Stealth mode: Logging to {log_file}")
-    logger.info(f"Working directory: {os.getcwd()}")
+    logger.info(f"Logging to: {log_file}")
     logger.info(f"PID: {os.getpid()}")
     
     # Try config files in order: config.vm.yaml -> config.yaml -> config.example.yaml
@@ -64,7 +79,9 @@ def run_disguised():
         config_file = os.path.join(script_dir, "config.example.yaml")
     
     logger.info(f"Using config file: {config_file}")
-    logger.info(f"Starting in stealth mode as '{disguise_name}'...")
+    print(f"[GCP Monitor] Config: {config_file}")
+    print(f"[GCP Monitor] Press Ctrl+C to stop")
+    print("-" * 50)
     
     try:
         config = Config(config_file) if os.path.exists(config_file) else Config()
@@ -76,6 +93,7 @@ def run_disguised():
     except Exception as e:
         logger.error(f"Fatal error: {e}")
         logger.error(traceback.format_exc())
+        print(f"[GCP Monitor] ERROR: {e}")
         raise
 
 if __name__ == "__main__":
