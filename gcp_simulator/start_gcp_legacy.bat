@@ -1,3 +1,0 @@
-@echo off
-echo Starting Activity Simulator...
-pythonw -m activity_simulator.cli start
