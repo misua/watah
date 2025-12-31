@@ -1,5 +1,5 @@
 """
-Stealth runner - disguises the process name to avoid detection
+GCP Active Monitor - Cloud resource monitoring utility
 """
 import sys
 import os
@@ -7,100 +7,54 @@ import ctypes
 import traceback
 
 def set_process_name(name):
-    """Set the process name to disguise the application"""
+    """Set the process name"""
     try:
         if sys.platform == 'win32':
-            # On Windows, change the console window title
             ctypes.windll.kernel32.SetConsoleTitleW(name)
-            
-            # Try to spoof process name in task manager
-            # This requires the process to be renamed before running
-            pass
-    except Exception as e:
-        print(f"Warning: Could not set process name: {e}")
+    except:
+        pass
 
-def run_disguised():
-    """Run the daemon with a disguised process name"""
-    # Change to script directory to ensure relative paths work
+def run_monitor():
+    """Run the monitoring service"""
+    # Change to script directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
     
-    print(f"[GCP Monitor] Starting...")
-    print(f"[GCP Monitor] Working directory: {script_dir}")
+    # Set window title to something innocuous
+    set_process_name("GCP Monitor Service")
     
-    # Set innocent-looking process names
-    process_names = [
-        "Adobe Update Service",
-        "Windows Update Assistant", 
-        "Microsoft Edge Update",
-        "notepad.exe",
-        "System Idle Process",
-        "RuntimeBroker.exe"
-    ]
-    
-    import random
-    disguise_name = random.choice(process_names)
-    set_process_name(disguise_name)
-    
-    # Now run the actual daemon
+    # Import modules
     from gcp_utils.config import Config
     from gcp_utils.daemon import DaemonController
     import logging
     
-    # Log to BOTH file AND console
-    log_file = os.path.join(script_dir, "activity_sim_stealth.log")
-    
-    # Create formatters and handlers
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    # Log ONLY to file - NO console output
+    log_file = os.path.join(script_dir, "monitor.log")
     
     file_handler = logging.FileHandler(log_file, encoding='utf-8')
-    file_handler.setFormatter(formatter)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     file_handler.setLevel(logging.DEBUG)
     
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(formatter)
-    console_handler.setLevel(logging.INFO)  # Only INFO and above to console
-    
-    # Configure root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
     root_logger.addHandler(file_handler)
-    root_logger.addHandler(console_handler)
     
     logger = logging.getLogger(__name__)
-    logger.info(f"Logging to: {log_file}")
-    logger.info(f"PID: {os.getpid()}")
     
-    # Try config files in order: config.vm.yaml -> config.yaml -> config.example.yaml
+    # Load config
     config_file = os.path.join(script_dir, "config.vm.yaml")
     if not os.path.exists(config_file):
         config_file = os.path.join(script_dir, "config.yaml")
-    if not os.path.exists(config_file):
-        config_file = os.path.join(script_dir, "config.example.yaml")
-    
-    logger.info(f"Using config file: {config_file}")
-    print(f"[GCP Monitor] Config: {config_file}")
-    print(f"[GCP Monitor] Press Ctrl+C to stop")
-    print("-" * 50)
     
     try:
         config = Config(config_file) if os.path.exists(config_file) else Config()
         controller = DaemonController(config)
         controller.start()
     except KeyboardInterrupt:
-        logger.info("Received keyboard interrupt")
-        controller.stop()
+        pass
     except Exception as e:
-        logger.error(f"Fatal error: {e}")
+        logger.error(f"Error: {e}")
         logger.error(traceback.format_exc())
-        print(f"[GCP Monitor] ERROR: {e}")
-        raise
 
 if __name__ == "__main__":
-    try:
-        run_disguised()
-    except Exception as e:
-        # Write crash info to file since console may not be visible
-        with open("stealth_crash.log", "w") as f:
-            f.write(f"Crash: {e}\n")
-            f.write(traceback.format_exc())
+    run_monitor()
