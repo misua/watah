@@ -364,7 +364,7 @@ class MonitorScheduler:
         monitor_type = self.choose_next_monitor()
         session_duration = self.get_session_duration()
         
-        logger.info(f"Chosen monitor: {monitor_type.UPPER()}")
+        logger.info(f"Chosen monitor: {monitor_type.upper()}")
         logger.info(f"Session duration: {session_duration} minutes")
         
         # Start the monitor
