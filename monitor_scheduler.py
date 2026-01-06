@@ -488,8 +488,8 @@ class MonitorScheduler:
                 logger.info("Work hours confirmed, running session...")
                 self.run_session()
                 
-                # Decide if we should take a break
-                if self.should_take_break():
+                # Decide if we should take a break (skip breaks in testing mode)
+                if not self.testing_mode and self.should_take_break():
                     break_duration = self.get_break_duration()
                     logger.info(f"Taking a break for {break_duration} minutes")
                     
@@ -500,10 +500,15 @@ class MonitorScheduler:
                         time.sleep(sleep_time)
                         remaining -= sleep_time
                 else:
-                    # Short pause between sessions (2-5 minutes)
-                    pause = random.randint(2, 5)
-                    logger.info(f"Brief pause ({pause} minutes) before next session")
-                    time.sleep(pause * 60)
+                    # Short pause between sessions
+                    if self.testing_mode:
+                        # No pause in testing mode - switch immediately
+                        logger.info("Switching to next monitor immediately")
+                    else:
+                        # 30-90 second pause in production
+                        pause = random.randint(30, 90)
+                        logger.info(f"Brief pause ({pause} seconds) before next session")
+                        time.sleep(pause)
                 
             except Exception as e:
                 logger.error(f"Error in scheduler loop: {e}")
