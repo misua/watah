@@ -1,7 +1,6 @@
 """
 Azure Portal Configuration Helper
 Assists with Azure portal navigation and resource management
-WITH PROPER INPUT DETECTION
 """
 import time
 import logging
@@ -9,13 +8,6 @@ import numpy as np
 import ctypes
 from typing import Tuple, List
 import yaml
-import threading
-
-try:
-    from pynput import mouse, keyboard as kb
-    PYNPUT_AVAILABLE = True
-except ImportError:
-    PYNPUT_AVAILABLE = False
 
 from win32_input import Win32InputInjector, VK_CODES
 
@@ -62,17 +54,6 @@ class AzurePortalHelper:
         self.injector = Win32InputInjector()
         self.window_detector = WindowDetector()
         
-        # Input detection settings
-        self.paused = False
-        self.simulation_lock = threading.Lock()
-        self._is_simulating = False
-        self.last_user_input = time.time()
-        self.pause_duration = config.get('safety', {}).get('pause_duration', 30)
-        self.pause_on_input = config.get('safety', {}).get('pause_on_user_input', True)
-        self.manual_pause_until = 0
-        self.ctrl_pressed = False
-        self.shift_pressed = False
-        
         # Define safe click zones (relative to screen size)
         self.zones = {
             'sidebar': {
@@ -89,110 +70,7 @@ class AzurePortalHelper:
             }
         }
         
-        # Setup user input detection
-        if self.pause_on_input and PYNPUT_AVAILABLE:
-            self._setup_user_input_detection()
-        elif self.pause_on_input:
-            logger.warning("User input detection requested but pynput not available")
-        
         logger.info("Azure Portal Helper initialized")
-    
-    @property
-    def currently_simulating(self):
-        """Thread-safe getter for simulation state"""
-        with self.simulation_lock:
-            return self._is_simulating
-    
-    @currently_simulating.setter
-    def currently_simulating(self, value):
-        """Thread-safe setter for simulation state"""
-        with self.simulation_lock:
-            self._is_simulating = value
-    
-    def _setup_user_input_detection(self):
-        """Setup listeners for user input to pause automation"""
-        def on_mouse_activity(*args):
-            if self.currently_simulating:
-                return
-            self.last_user_input = time.time()
-            if not self.paused:
-                self.paused = True
-                logger.info("⏸ User mouse input detected - pausing automation")
-        
-        def on_keyboard_activity(key):
-            # Check for Ctrl+Shift+F12 emergency stop (works even during simulation)
-            try:
-                if key == kb.Key.ctrl_l or key == kb.Key.ctrl_r:
-                    self.ctrl_pressed = True
-                elif key == kb.Key.shift_l or key == kb.Key.shift_r:
-                    self.shift_pressed = True
-                elif hasattr(key, 'name') and key.name == 'f12':
-                    if self.ctrl_pressed and self.shift_pressed:
-                        self.manual_pause_until = time.time() + 600  # 10 minutes
-                        self.paused = True
-                        logger.critical("🛑 EMERGENCY STOP: Ctrl+Shift+F12 - paused for 10 minutes")
-                        return
-            except AttributeError:
-                pass
-            
-            # Regular keyboard detection (only when not simulating)
-            if self.currently_simulating:
-                return
-            self.last_user_input = time.time()
-            if not self.paused:
-                self.paused = True
-                logger.info("⏸ User keyboard input detected - pausing automation")
-        
-        def on_keyboard_release(key):
-            try:
-                if key == kb.Key.ctrl_l or key == kb.Key.ctrl_r:
-                    self.ctrl_pressed = False
-                elif key == kb.Key.shift_l or key == kb.Key.shift_r:
-                    self.shift_pressed = False
-            except AttributeError:
-                pass
-        
-        try:
-            mouse_listener = mouse.Listener(
-                on_move=on_mouse_activity,
-                on_click=on_mouse_activity,
-                on_scroll=on_mouse_activity
-            )
-            keyboard_listener = kb.Listener(
-                on_press=on_keyboard_activity,
-                on_release=on_keyboard_release
-            )
-            
-            mouse_listener.start()
-            keyboard_listener.start()
-            
-            self.user_input_listener = (mouse_listener, keyboard_listener)
-            logger.info("✓ User input detection enabled (Ctrl+Shift+F12 for emergency stop)")
-        except Exception as e:
-            logger.error(f"Failed to setup user input detection: {e}")
-    
-    def _check_resume(self):
-        """Check if automation should resume after user input"""
-        if not self.paused:
-            return
-        
-        # Check manual pause (emergency stop)
-        if self.manual_pause_until > time.time():
-            remaining = int((self.manual_pause_until - time.time()) / 60)
-            if remaining > 0 and int(time.time()) % 60 == 0:
-                logger.info(f"⏸ Manual pause active: {remaining} minutes remaining")
-            return
-        elif self.manual_pause_until > 0:
-            self.manual_pause_until = 0
-            self.paused = False
-            logger.info("▶ Manual pause ended - resuming automation")
-            return
-        
-        # Normal automatic resume
-        elapsed = time.time() - self.last_user_input
-        if elapsed >= self.pause_duration:
-            self.paused = False
-            logger.info(f"▶ Resuming automation after {elapsed:.1f}s of inactivity")
     
     def get_random_point_in_zone(self, zone_name: str) -> Tuple[int, int]:
         """Get random coordinates within a safe zone"""
@@ -212,7 +90,6 @@ class AzurePortalHelper:
     
     def click_in_zone(self, zone_name: str) -> bool:
         """Click at random position in specified zone"""
-        self.currently_simulating = True
         try:
             x, y = self.get_random_point_in_zone(zone_name)
             
@@ -234,12 +111,9 @@ class AzurePortalHelper:
         except Exception as e:
             logger.error(f"Failed to click in zone {zone_name}: {e}")
             return False
-        finally:
-            self.currently_simulating = False
     
     def switch_tab(self) -> bool:
         """Switch to next browser tab using Ctrl+Tab"""
-        self.currently_simulating = True
         try:
             self.injector.press_key(VK_CODES["control"], hold=True)
             time.sleep(0.05)
@@ -251,12 +125,9 @@ class AzurePortalHelper:
         except Exception as e:
             logger.error(f"Failed to switch tab: {e}")
             return False
-        finally:
-            self.currently_simulating = False
     
     def scroll(self, direction: str = "down") -> bool:
         """Scroll the page"""
-        self.currently_simulating = True
         try:
             scroll_count = np.random.randint(2, 5)
             for _ in range(scroll_count):
@@ -268,8 +139,6 @@ class AzurePortalHelper:
         except Exception as e:
             logger.error(f"Failed to scroll: {e}")
             return False
-        finally:
-            self.currently_simulating = False
     
     def select_activity(self) -> str:
         """Select random activity based on weights"""
@@ -302,30 +171,14 @@ class AzurePortalHelper:
         """Main loop"""
         logger.info("Starting Azure portal configuration service...")
         logger.info("Service running in background")
-        if self.pause_on_input:
-            logger.info(f"🛡 Auto-pause enabled: will pause for {self.pause_duration}s after manual input")
-            logger.info("🛑 Emergency stop: Press Ctrl+Shift+F12 to pause for 10 minutes")
         
         try:
             while True:
-                # Check if should resume from pause
-                self._check_resume()
-                
-                # Skip if paused
-                if self.paused:
-                    time.sleep(1)
-                    continue
-                
                 # Check if browser is active
                 if not self.window_detector.is_browser_active():
-                    if not self.paused:  # Only log once
-                        logger.warning("Browser not active, waiting...")
-                        self.paused = True
+                    logger.warning("Browser not active, waiting...")
                     time.sleep(5)
                     continue
-                elif self.paused:  # Browser became active again
-                    self.paused = False
-                    logger.info("Browser active - resuming automation")
                 
                 # Select and execute activity
                 activity = self.select_activity()
@@ -347,9 +200,6 @@ class AzurePortalHelper:
                 
         except KeyboardInterrupt:
             logger.info("Stopping Azure portal configuration service...")
-            if hasattr(self, 'user_input_listener'):
-                for listener in self.user_input_listener:
-                    listener.stop()
 
 
 def load_config(config_file: str = 'config.yaml') -> dict:
@@ -363,10 +213,6 @@ def load_config(config_file: str = 'config.yaml') -> dict:
             'timing': {
                 'min_interval': 5,
                 'max_interval': 15
-            },
-            'safety': {
-                'pause_on_user_input': True,
-                'pause_duration': 30
             },
             'activities': {
                 'click_content': {'weight': 0.40},

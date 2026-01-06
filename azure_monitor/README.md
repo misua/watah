@@ -8,6 +8,8 @@ A Windows utility that assists with Azure portal navigation and resource managem
 - **Tab Switching**: Switches between browser tabs using Ctrl+Tab
 - **Scrolling**: Scrolls up/down to explore content
 - **Browser Detection**: Only runs when browser is active
+- **Auto-Pause on Manual Input**: Automatically pauses when you move the mouse or type
+- **Emergency Stop**: Press Ctrl+Shift+F12 to pause for 10 minutes
 - **No Typing**: Never types anything
 - **No Destructive Actions**: Never clicks delete or dangerous buttons
 
@@ -24,7 +26,7 @@ source ../gcp_simulator/venv/bin/activate  # Linux/Mac
 ..\gcp_simulator\venv\Scripts\activate  # Windows
 
 # Install required packages (if not already installed)
-pip install numpy pyyaml pywin32
+pip install numpy pyyaml pywin32 pynput
 ```
 
 ## Usage
@@ -79,6 +81,10 @@ timing:
   min_interval: 5    # Minimum seconds between actions
   max_interval: 15   # Maximum seconds between actions
 
+safety:
+  pause_on_user_input: true  # Auto-pause when manual input detected
+  pause_duration: 30         # Seconds of inactivity before resuming
+
 activities:
   click_content:
     weight: 0.40     # 40% chance
@@ -90,6 +96,24 @@ activities:
     weight: 0.08     # 8% chance
   scroll_up:
     weight: 0.02     # 2% chance
+```
+
+### Safety Features
+
+**Auto-Pause on Manual Input:**
+- The automation automatically pauses when it detects manual mouse movement or keyboard input
+- After 30 seconds of inactivity (configurable), it automatically resumes
+- This prevents the automation from interfering with your manual work
+
+**Emergency Stop:**
+- Press **Ctrl+Shift+F12** to immediately pause the automation for 10 minutes
+- Useful when you need to take over control for an extended period
+
+**Configuring Safety:**
+```yaml
+safety:
+  pause_on_user_input: true  # Enable/disable auto-pause
+  pause_duration: 30         # Seconds before auto-resume
 ```
 
 ### Safe Zones

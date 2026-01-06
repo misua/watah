@@ -4,6 +4,10 @@ timing:
   min_interval: 5    # Minimum seconds between actions
   max_interval: 15   # Maximum seconds between actions
 
+safety:
+  pause_on_user_input: true  # Auto-pause when manual input detected
+  pause_duration: 30         # Seconds of inactivity before resuming
+
 activities:
   click_content:     # Click in main content area (resources, links)
     weight: 0.40
