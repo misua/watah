@@ -229,16 +229,24 @@ class MonitorScheduler:
             logger.debug("Testing mode: using 2 minute session")
             return 2  # 2 minutes for testing
         
-        # Most sessions are 45-60 minutes, with occasional longer/shorter ones
-        weights = [0.1, 0.3, 0.4, 0.15, 0.05]  # Distribution weights
-        durations = [30, 45, 60, 75, 90]       # Minutes
+        # Production: varied session lengths to seem natural
+        # 20% short sessions (15-30 min), 50% medium (30-60 min), 30% long (60-120 min)
+        rand = random.random()
+        if rand < 0.2:
+            # Short focused work
+            duration = random.randint(15, 30)
+        elif rand < 0.7:
+            # Medium work session
+            duration = random.randint(30, 60)
+        else:
+            # Long deep work session
+            duration = random.randint(60, 120)
         
-        duration = random.choices(durations, weights=weights)[0]
+        # Add random jitter (±3 minutes) to avoid patterns
+        duration += random.randint(-3, 3)
         
-        # Add small random variance (±5 minutes)
-        duration += random.randint(-5, 5)
-        
-        return max(25, min(95, duration))  # Clamp between 25-95 minutes
+        logger.debug(f"Production mode: {duration} minute session")
+        return max(10, duration)  # Minimum 10 minutes
     
     def should_take_break(self) -> bool:
         """Randomly decide if we should take a break (15% chance)"""
