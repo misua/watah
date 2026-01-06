@@ -53,21 +53,29 @@ class WindowDetector:
         logger.debug(f"Searching for windows with keywords: {keywords}")
         user32 = ctypes.windll.user32
         
-        def enum_windows_callback(hwnd, results):
-            if user32.IsWindowVisible(hwnd):
-                length = user32.GetWindowTextLengthW(hwnd)
-                if length > 0:
-                    buff = ctypes.create_unicode_buffer(length + 1)
-                    user32.GetWindowTextW(hwnd, buff, length + 1)
-                    title = buff.value.lower()
-                    if any(keyword in title for keyword in keywords):
-                        logger.debug(f"Found matching window: '{title}' (hwnd: {hwnd})")
-                        results.append(hwnd)
+        results = []
+        
+        def enum_windows_callback(hwnd, lParam):
+            try:
+                if user32.IsWindowVisible(hwnd):
+                    length = user32.GetWindowTextLengthW(hwnd)
+                    if length > 0:
+                        buff = ctypes.create_unicode_buffer(length + 1)
+                        user32.GetWindowTextW(hwnd, buff, length + 1)
+                        title = buff.value.lower()
+                        if any(keyword in title for keyword in keywords):
+                            logger.debug(f"Found matching window: '{title}' (hwnd: {hwnd})")
+                            results.append(hwnd)
+            except Exception as e:
+                logger.debug(f"Error checking window {hwnd}: {e}")
             return True
         
-        results = []
-        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.py_object)
-        user32.EnumWindows(EnumWindowsProc(enum_windows_callback), results)
+        # Correct signature: BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
+        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+        try:
+            user32.EnumWindows(EnumWindowsProc(enum_windows_callback), 0)
+        except Exception as e:
+            logger.error(f"EnumWindows failed: {e}")
         logger.debug(f"Found {len(results)} matching windows")
         return results[0] if results else None
     
@@ -301,8 +309,19 @@ class MonitorScheduler:
             time.sleep(1)
             
             # Start the monitor process
-            # Use pythonw on Windows to avoid console window
-            python_cmd = 'pythonw' if sys.platform == 'win32' else 'python3'
+            # Use pythonw on Windows to avoid console window, fallback to sys.executable
+            if sys.platform == 'win32':
+                # Try pythonw first, fallback to python from sys.executable dir
+                python_dir = os.path.dirname(sys.executable)
+                pythonw_path = os.path.join(python_dir, 'pythonw.exe')
+                if os.path.exists(pythonw_path):
+                    python_cmd = pythonw_path
+                else:
+                    python_cmd = sys.executable
+                    logger.warning(f"pythonw.exe not found, using {python_cmd}")
+            else:
+                python_cmd = sys.executable
+            
             logger.info(f"Starting process: {python_cmd} {script_path}")
             logger.info(f"Working directory: {cwd}")
             
@@ -311,7 +330,8 @@ class MonitorScheduler:
                 cwd=cwd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                stdin=subprocess.PIPE
+                stdin=subprocess.PIPE,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
             )
             
             self.current_monitor = monitor_type
@@ -387,6 +407,10 @@ class MonitorScheduler:
             logger.debug(f"Session check iteration {iteration}, remaining: {remaining_min:.1f} min")
             
             # Check if process is still running
+            if self.current_process is None:
+                logger.error("Process reference lost!")
+                break
+                
             poll_result = self.current_process.poll()
             if poll_result is not None:
                 logger.warning(f"{monitor_type} monitor process ended unexpectedly")
@@ -398,8 +422,10 @@ class MonitorScheduler:
                         logger.debug(f"Process stdout: {stdout.decode('utf-8', errors='ignore')[:500]}")
                     if stderr:
                         logger.debug(f"Process stderr: {stderr.decode('utf-8', errors='ignore')[:500]}")
-                except:
-                    pass
+                except subprocess.TimeoutExpired:
+                    logger.warning("Timeout while reading process output")
+                except Exception as e:
+                    logger.warning(f"Could not read process output: {e}")
                 break
             
             # Every 2 minutes, verify we're still on the right window
