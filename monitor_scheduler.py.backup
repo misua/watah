@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 import signal
 import ctypes
-import traceback
 
 # Setup logging
 log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scheduler_debug.log')
@@ -145,10 +144,7 @@ class WindowDetector:
 
 
 class MonitorScheduler:
-    """Schedules and alternates between GCP and Azure monitors"""
-    
-    def __init__(self, testing_mode=False):
-        logger.info("=" * 60)
+    """Slogger.info("=" * 60)
         logger.info("Initializing MonitorScheduler")
         logger.info(f"Testing mode: {testing_mode}")
         
@@ -172,7 +168,10 @@ class MonitorScheduler:
         signal.signal(signal.SIGTERM, self._signal_handler)
         
         logger.info("MonitorScheduler initialized successfully")
-        logger.info("=" * 60)
+        logger.info("=" * 60
+        # Register signal handlers for graceful shutdown
+        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""
@@ -183,44 +182,44 @@ class MonitorScheduler:
     
     def is_work_hours(self) -> bool:
         """Check if it's during realistic work hours"""
-        logger.debug("Checking work hours...")
-        
         if self.testing_mode:
-            logger.debug("Testing mode - always work hours")
-            return True
+            return True  # Always work hours during testing
         
         now = datetime.now()
-        logger.debug(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S %A')}")
         
-        # Weekend check - 20% chance of working on weekends
-        if now.weekday() >= 5:  # Saturday=5, Sunday=6
-            if random.random() > 0.2:
-                logger.info("It's the weekend, skipping (80% chance)")
-                return False
-            logger.info("Working on weekend (20% chance)")
+        # Weekend check - 20% chance of wor based on active window"""
+        # Try to detect preferred monitor from active window
+        preferred = WindowDetector.get_preferred_monitor()
         
-        # Work hours: 8 AM - 6 PM with some variance
-        # Add ±2 hours randomness for realistic start/end times
-        work_start = 8 + random.randint(-2, 2)  # 6-10 AM
-        work_end = 18 + random.randint(-2, 2)   # 4-8 PM
+        if preferred:
+            logger.info(f"Detected {'browser' if preferred == 'azure' else 'IDE'} window, using {preferred.upper()} monitor")
+            return preferred
         
-        logger.debug(f"Work hours today: {work_start}:00 - {work_end}:00")
+        # No clear window context - alternate between monitors
+        if self.current_monitor is None:
+            # First run - 50/50 choice
+            monitor = random.choice(['gcp', 'azure'])
+            logger.info(f"No specific window detected, choosing {monitor.upper()} monitor")
+            return monitor
+        elif self.current_monitor == 'gcp':
+            # 70% switch to azure, 30% stay with gcp
+            return 'azure' if random.random() < 0.7 else 'gcp'
+        else:
+            # 70% switch to gcp, 30% stay with azure
+            return 'gcp' if random.random() < 0.74-8 PM
         
         current_hour = now.hour
         
         if work_start <= current_hour < work_end:
-            logger.info(f"Within work hours ({current_hour}:00 is between {work_start}:00-{work_end}:00)")
             return True
         
-        logger.info(f"Outside work hours ({current_hour}:00 is not between {work_start}:00-{work_end}:00)")
         return False
     
-    def get_session_duration(self) -> int:
-        """Get random session duration for a monitor (30-90 minutes or 2 min for testing)"""
+    def get_session_duration(self) -> int: or 2 min for testing)"""
         if self.testing_mode:
-            logger.debug("Testing mode: using 2 minute session")
             return 2  # 2 minutes for testing
         
+        """Get random session duration for a monitor (30-90 minutes)"""
         # Most sessions are 45-60 minutes, with occasional longer/shorter ones
         weights = [0.1, 0.3, 0.4, 0.15, 0.05]  # Distribution weights
         durations = [30, 45, 60, 75, 90]       # Minutes
@@ -245,44 +244,29 @@ class MonitorScheduler:
             return random.randint(30, 60)
     
     def choose_next_monitor(self) -> str:
-        """Choose which monitor to run next based on active window"""
-        logger.debug("Choosing next monitor...")
-        
-        # Try to detect preferred monitor from active window
-        preferred = WindowDetector.get_preferred_monitor()
-        
-        if preferred:
-            logger.info(f"Detected {'browser' if preferred == 'azure' else 'IDE'} window, using {preferred.upper()} monitor")
-            return preferred
-        
-        # No clear window context - alternate between monitors
+        """Choose which monitor to run next"""
+        # Alternate between monitors, with slight bias
         if self.current_monitor is None:
             # First run - 50/50 choice
-            monitor = random.choice(['gcp', 'azure'])
-            logger.info(f"No specific window detected, choosing {monitor.upper()} monitor")
-            return monitor
+            return random.choice(['gcp', 'azure'])
         elif self.current_monitor == 'gcp':
-            # 70% switch to azure, 30% stay with gcp
-            return 'azure' if random.random() < 0.7 else 'gcp'
+            # 85% switch to azure, 15% stay with gcp
+            return 'azure' if random.random() < 0.85 else 'gcp'
         else:
-            # 70% switch to gcp, 30% stay with azure
-            return 'gcp' if random.random() < 0.7 else 'azure'
+            # 85% switch to gcp, 15% stay with azure
+            return 'gcp' if random.random() < 0.85 else 'azure'
     
     def start_monitor(self, monitor_type: str) -> bool:
         """Start a monitor (gcp or azure) and switch to appropriate window"""
         try:
-            logger.info(f"start_monitor called for: {monitor_type}")
-            
             # First, switch to the appropriate window for this monitor
             if monitor_type == 'gcp':
-                logger.info("Attempting to switch to IDE...")
                 if not WindowDetector.switch_to_ide():
                     logger.warning("Could not switch to IDE, monitor may not work optimally")
                 script_path = os.path.join(self.gcp_dir, 'gcp_monitoring.py')
                 cwd = self.gcp_dir
                 logger.info("Starting GCP monitor...")
             else:  # azure
-                logger.info("Attempting to switch to browser...")
                 if not WindowDetector.switch_to_browser():
                     logger.warning("Could not switch to browser, monitor may not work optimally")
                 script_path = os.path.join(self.azure_dir, 'azure_setup.py')
@@ -290,21 +274,16 @@ class MonitorScheduler:
                 logger.info("Starting Azure monitor...")
             
             # Check if script exists
-            logger.info(f"Looking for script: {script_path}")
             if not os.path.exists(script_path):
                 logger.error(f"Monitor script not found: {script_path}")
                 return False
-            logger.info(f"Script found!")
             
             # Give window switch time to complete
-            logger.debug("Waiting for window switch to complete...")
             time.sleep(1)
             
             # Start the monitor process
             # Use pythonw on Windows to avoid console window
             python_cmd = 'pythonw' if sys.platform == 'win32' else 'python3'
-            logger.info(f"Starting process: {python_cmd} {script_path}")
-            logger.info(f"Working directory: {cwd}")
             
             self.current_process = subprocess.Popen(
                 [python_cmd, script_path],
@@ -320,17 +299,15 @@ class MonitorScheduler:
             
         except Exception as e:
             logger.error(f"Failed to start {monitor_type} monitor: {e}")
-            logger.error(traceback.format_exc())
             return False
     
     def stop_current_monitor(self):
         """Stop the currently running monitor"""
         if self.current_process is None:
-            logger.debug("No process to stop")
             return
         
         try:
-            logger.info(f"Stopping {self.current_monitor} monitor (PID: {self.current_process.pid})...")
+            logger.info(f"Stopping {self.current_monitor} monitor...")
             
             # Try graceful shutdown first
             self.current_process.terminate()
@@ -338,34 +315,18 @@ class MonitorScheduler:
             # Wait up to 5 seconds for graceful shutdown
             try:
                 self.current_process.wait(timeout=5)
-                logger.info("Process terminated gracefully")
             except subprocess.TimeoutExpired:
                 # Force kill if not responding
                 logger.warning("Monitor not responding, forcing shutdown...")
                 self.current_process.kill()
                 self.current_process.wait()
-                logger.info("Process killed")
             
-            logger.info(f"{self.current_monitor} monitor stopped")
-            
-        except Exception as e:
-            logger.error(f"Error stopping monitor: {e}")
-            logger.error(traceback.format_exc())
-        finally:
-            self.current_process = None
-            self.current_monitor = None
-    
-    def run_session(self):
-        """Run a single monitoring session with window context awareness"""
-        logger.info("=" * 60)
-        logger.info("Starting new session")
-        
+            logger.info(f"{self.current_mo with window context awareness"""
         # Choose which monitor to run
         monitor_type = self.choose_next_monitor()
         session_duration = self.get_session_duration()
         
-        logger.info(f"Chosen monitor: {monitor_type.UPPER()}")
-        logger.info(f"Session duration: {session_duration} minutes")
+        logger.info(f"Starting {monitor_type.upper()} session for {session_duration} minutes")
         
         # Start the monitor
         if not self.start_monitor(monitor_type):
@@ -376,45 +337,24 @@ class MonitorScheduler:
         # Run for the session duration with periodic window checks
         start_time = time.time()
         end_time = start_time + (session_duration * 60)
-        last_context_check = time.time()
-        
-        logger.info(f"Session will run until {datetime.fromtimestamp(end_time).strftime('%H:%M:%S')}")
-        
-        iteration = 0
-        while time.time() < end_time and not self.should_stop:
-            iteration += 1
-            remaining_min = (end_time - time.time()) / 60
-            logger.debug(f"Session check iteration {iteration}, remaining: {remaining_min:.1f} min")
-            
-            # Check if process is still running
-            poll_result = self.current_process.poll()
-            if poll_result is not None:
-                logger.warning(f"{monitor_type} monitor process ended unexpectedly")
-                logger.warning(f"Exit code: {poll_result}")
-                # Try to capture any output
-                try:
-                    stdout, stderr = self.current_process.communicate(timeout=1)
-                    if stdout:
-                        logger.debug(f"Process stdout: {stdout.decode('utf-8', errors='ignore')[:500]}")
-                    if stderr:
-                        logger.debug(f"Process stderr: {stderr.decode('utf-8', errors='ignore')[:500]}")
-                except:
-                    pass
-                break
-            
-            # Every 2 minutes, verify we're still on the right window
+        last_context_check = tiverify we're still on the right window
             if time.time() - last_context_check > 120:
-                logger.debug("Checking window context...")
                 current_context = WindowDetector.get_preferred_monitor()
-                logger.debug(f"Current context: {current_context}, Expected: {monitor_type}")
-                
                 if current_context != monitor_type:
                     logger.info(f"Window context mismatch, refocusing...")
                     # Try to refocus the correct window
                     if monitor_type == 'gcp':
                         WindowDetector.switch_to_ide()
                     else:
-                        WindowDetector.switch_to_browser()
+                        WindowDetector.switch_to_browser()rning(f"{monitor_type} monitor process ended unexpectedly")
+                break
+            
+            # Every 2 minutes, check if window context has changed
+            if time.time() - last_context_check > 120:
+                preferred = WindowDetector.get_preferred_monitor()
+                if preferred and preferred != monitor_type:
+                    logger.info(f"Window context changed to {'browser' if preferred == 'azure' else 'IDE'}, switching monitors...")
+                    break
                 last_context_check = time.time()
             
             # Sleep for 30 seconds before checking again
@@ -424,20 +364,23 @@ class MonitorScheduler:
         self.stop_current_monitor()
         
         elapsed = (time.time() - start_time) / 60
-        logger.info(f"Session completed ({elapsed:.1f} minutes)")
-        logger.info("=" * 60)
+        logger.info(f"Session completed ({elapsed:.1focess ended unexpectedly")
+                break
+            
+            # Sleep for 30 seconds before checking again
+            time.sleep(30)
+        
+        # Stop the monitor
+        self.stop_current_monitor()
+        
+        logger.info(f"Session completed ({session_duration} minutes)")
     
     def run(self):
         """Main scheduler loop"""
-        logger.info("=" * 60)
-        logger.info("Monitor Scheduler STARTED")
+        logger.info("Monitor Scheduler started")
         logger.info("=" * 60)
         
-        loop_iteration = 0
         while not self.should_stop:
-            loop_iteration += 1
-            logger.info(f"\n>>> Main loop iteration {loop_iteration}")
-            
             try:
                 # Check if we're in work hours
                 if not self.is_work_hours():
@@ -448,7 +391,6 @@ class MonitorScheduler:
                     wait_seconds = (next_start - now).total_seconds()
                     
                     logger.info(f"Outside work hours. Sleeping until {next_start.strftime('%Y-%m-%d %H:%M')}")
-                    logger.info(f"Sleep duration: {wait_seconds/3600:.1f} hours")
                     
                     # Sleep in chunks to allow for shutdown signals
                     while wait_seconds > 0 and not self.should_stop:
@@ -459,7 +401,6 @@ class MonitorScheduler:
                     continue
                 
                 # Run a monitoring session
-                logger.info("Work hours confirmed, running session...")
                 self.run_session()
                 
                 # Decide if we should take a break
@@ -471,38 +412,39 @@ class MonitorScheduler:
                     remaining = break_duration * 60
                     while remaining > 0 and not self.should_stop:
                         sleep_time = min(60, remaining)
-                        time.sleep(sleep_time)
-                        remaining -= sleep_time
-                else:
-                    # Short pause between sessions (2-5 minutes)
-                    pause = random.randint(2, 5)
+                 Window-aware: Browser→Azure, IDE→GCP")
+    if testing_mode:
+        logger.info("TESTING MODE: 2-minute intervals")
+    else:
+        logger.info("Production mode: 30-90 minute sessions during work hour
                     logger.info(f"Brief pause ({pause} minutes) before next session")
                     time.sleep(pause * 60)
                 
             except Exception as e:
                 logger.error(f"Error in scheduler loop: {e}")
-                logger.error(traceback.format_exc())
+                logger.error(f"Traceback: {traceback.format_exc()}")
                 time.sleep(60)  # Wait a minute before retrying
         
-        logger.info("Monitor Scheduler STOPPED")
-
-
-def main():
-    """Entry point"""
-    
-    # Check for testing mode flag
+        logger.info("Monitor Scheduler stopped")
+# Check for testing mode flag
     testing_mode = '--test' in sys.argv or '-t' in sys.argv
     
     logger.info("=" * 60)
     logger.info("Smart Monitor Scheduler")
-    logger.info("Window-aware: Browser→Azure, IDE→GCP")
+    logger.info("Alternates between GCP and Azure monitors")
     if testing_mode:
         logger.info("TESTING MODE: 2-minute intervals")
     else:
-        logger.info("Production mode: 30-90 minute sessions during work hours")
+        logger.info("Simulates realistic 8-hour workday patterns")
     logger.info("=" * 60)
     
-    scheduler = MonitorScheduler(testing_mode=testing_mode)
+    scheduler = MonitorScheduler(testing_mode=testing_mode
+    logger.info("Smart Monitor Scheduler")
+    logger.info("Alternates between GCP and Azure monitors")
+    logger.info("Simulates realistic 8-hour workday patterns")
+    logger.info("=" * 60)
+    
+    scheduler = MonitorScheduler()
     
     try:
         scheduler.run()
