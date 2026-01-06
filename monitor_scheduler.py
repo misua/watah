@@ -1,6 +1,6 @@
 """
 Smart Monitor Scheduler
-Alternates between GCP and Azure monitors with realistic work patterns
+Alternates between GCP and Azure monitors based on active window context
 """
 import os
 import sys
@@ -11,6 +11,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, List
 import signal
+import ctypes
 
 # Setup logging
 logging.basicConfig(
@@ -22,6 +23,117 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+
+class WindowDetector:
+    """Detect and switch active windows"""
+    
+    @staticmethod
+    def get_active_window_title() -> str:
+        """Get the title of the active window"""
+        try:
+            user32 = ctypes.windll.user32
+            hwnd = user32.GetForegroundWindow()
+            length = user32.GetWindowTextLengthW(hwnd)
+            buff = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buff, length + 1)
+            return buff.value.lower()
+        except Exception as e:
+            logger.debug(f"Failed to get window title: {e}")
+            return ""
+    
+    @staticmethod
+    def find_window_by_keywords(keywords: List[str]) -> Optional[int]:
+        """Find a window handle by title keywords"""
+        user32 = ctypes.windll.user32
+        
+        def enum_windows_callback(hwnd, results):
+            if user32.IsWindowVisible(hwnd):
+                length = user32.GetWindowTextLengthW(hwnd)
+                if length > 0:
+                    buff = ctypes.create_unicode_buffer(length + 1)
+                    user32.GetWindowTextW(hwnd, buff, length + 1)
+                    title = buff.value.lower()
+                    if any(keyword in title for keyword in keywords):
+                        results.append(hwnd)
+            return True
+        
+        results = []
+        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.py_object)
+        user32.EnumWindows(EnumWindowsProc(enum_windows_callback), results)
+        return results[0] if results else None
+    
+    @staticmethod
+    def focus_window(hwnd: int) -> bool:
+        """Bring a window to the foreground"""
+        try:
+            user32 = ctypes.windll.user32
+            user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+            user32.SetForegroundWindow(hwnd)
+            time.sleep(0.5)  # Give time for window to focus
+            return True
+        except Exception as e:
+            logger.error(f"Failed to focus window: {e}")
+            return False
+    
+    @staticmethod
+    def switch_to_browser() -> bool:
+        """Switch focus to a browser window"""
+        browser_keywords = [
+            'chrome', 'firefox', 'edge', 'brave', 'opera',
+            'mozilla', 'safari'
+        ]
+        hwnd = WindowDetector.find_window_by_keywords(browser_keywords)
+        if hwnd:
+            logger.info("Switching to browser window")
+            return WindowDetector.focus_window(hwnd)
+        logger.warning("No browser window found")
+        return False
+    
+    @staticmethod
+    def switch_to_ide() -> bool:
+        """Switch focus to an IDE window"""
+        ide_keywords = [
+            'visual studio code', 'vscode', 'pycharm', 'intellij',
+            'eclipse', 'sublime', 'atom', 'webstorm', 'phpstorm',
+            'rider', 'clion', 'netbeans'
+        ]
+        hwnd = WindowDetector.find_window_by_keywords(ide_keywords)
+        if hwnd:
+            logger.info("Switching to IDE window")
+            return WindowDetector.focus_window(hwnd)
+        logger.warning("No IDE window found")
+        return False
+    
+    @staticmethod
+    def is_browser_active() -> bool:
+        """Check if a browser window is active"""
+        title = WindowDetector.get_active_window_title()
+        browser_keywords = [
+            'chrome', 'firefox', 'edge', 'brave', 'opera',
+            'mozilla', 'browser', 'safari'
+        ]
+        return any(keyword in title for keyword in browser_keywords)
+    
+    @staticmethod
+    def is_ide_active() -> bool:
+        """Check if an IDE window is active"""
+        title = WindowDetector.get_active_window_title()
+        ide_keywords = [
+            'visual studio code', 'vscode', 'pycharm', 'intellij',
+            'eclipse', 'sublime', 'atom', 'notepad++', 'vim',
+            'emacs', 'webstorm', 'phpstorm', 'rider', 'clion'
+        ]
+        return any(keyword in title for keyword in ide_keywords)
+    
+    @staticmethod
+    def get_preferred_monitor() -> Optional[str]:
+        """Get preferred monitor based on active window"""
+        if WindowDetector.is_browser_active():
+            return 'azure'
+        elif WindowDetector.is_ide_active():
+            return 'gcp'
+        return None
 
 
 class MonitorScheduler:
@@ -55,17 +167,26 @@ class MonitorScheduler:
         
         now = datetime.now()
         
-        # Weekend check - 20% chance of working on weekends
-        if now.weekday() >= 5:  # Saturday=5, Sunday=6
-            if random.random() > 0.2:
-                logger.info("It's the weekend, skipping (80% chance)")
-                return False
-            logger.info("Working on weekend (20% chance)")
+        # Weekend check - 20% chance of wor based on active window"""
+        # Try to detect preferred monitor from active window
+        preferred = WindowDetector.get_preferred_monitor()
         
-        # Work hours: 8 AM - 6 PM with some variance
-        # Add ±2 hours randomness for realistic start/end times
-        work_start = 8 + random.randint(-2, 2)  # 6-10 AM
-        work_end = 18 + random.randint(-2, 2)   # 4-8 PM
+        if preferred:
+            logger.info(f"Detected {'browser' if preferred == 'azure' else 'IDE'} window, using {preferred.upper()} monitor")
+            return preferred
+        
+        # No clear window context - alternate between monitors
+        if self.current_monitor is None:
+            # First run - 50/50 choice
+            monitor = random.choice(['gcp', 'azure'])
+            logger.info(f"No specific window detected, choosing {monitor.upper()} monitor")
+            return monitor
+        elif self.current_monitor == 'gcp':
+            # 70% switch to azure, 30% stay with gcp
+            return 'azure' if random.random() < 0.7 else 'gcp'
+        else:
+            # 70% switch to gcp, 30% stay with azure
+            return 'gcp' if random.random() < 0.74-8 PM
         
         current_hour = now.hour
         
@@ -116,13 +237,18 @@ class MonitorScheduler:
             return 'gcp' if random.random() < 0.85 else 'azure'
     
     def start_monitor(self, monitor_type: str) -> bool:
-        """Start a monitor (gcp or azure)"""
+        """Start a monitor (gcp or azure) and switch to appropriate window"""
         try:
+            # First, switch to the appropriate window for this monitor
             if monitor_type == 'gcp':
+                if not WindowDetector.switch_to_ide():
+                    logger.warning("Could not switch to IDE, monitor may not work optimally")
                 script_path = os.path.join(self.gcp_dir, 'gcp_monitoring.py')
                 cwd = self.gcp_dir
                 logger.info("Starting GCP monitor...")
             else:  # azure
+                if not WindowDetector.switch_to_browser():
+                    logger.warning("Could not switch to browser, monitor may not work optimally")
                 script_path = os.path.join(self.azure_dir, 'azure_setup.py')
                 cwd = self.azure_dir
                 logger.info("Starting Azure monitor...")
@@ -131,6 +257,9 @@ class MonitorScheduler:
             if not os.path.exists(script_path):
                 logger.error(f"Monitor script not found: {script_path}")
                 return False
+            
+            # Give window switch time to complete
+            time.sleep(1)
             
             # Start the monitor process
             # Use pythonw on Windows to avoid console window
@@ -172,16 +301,7 @@ class MonitorScheduler:
                 self.current_process.kill()
                 self.current_process.wait()
             
-            logger.info(f"{self.current_monitor} monitor stopped")
-            
-        except Exception as e:
-            logger.error(f"Error stopping monitor: {e}")
-        finally:
-            self.current_process = None
-            self.current_monitor = None
-    
-    def run_session(self):
-        """Run a single monitoring session"""
+            logger.info(f"{self.current_mo with window context awareness"""
         # Choose which monitor to run
         monitor_type = self.choose_next_monitor()
         session_duration = self.get_session_duration()
@@ -194,14 +314,37 @@ class MonitorScheduler:
             time.sleep(300)
             return
         
-        # Run for the session duration
+        # Run for the session duration with periodic window checks
         start_time = time.time()
         end_time = start_time + (session_duration * 60)
+        last_context_check = tiverify we're still on the right window
+            if time.time() - last_context_check > 120:
+                current_context = WindowDetector.get_preferred_monitor()
+                if current_context != monitor_type:
+                    logger.info(f"Window context mismatch, refocusing...")
+                    # Try to refocus the correct window
+                    if monitor_type == 'gcp':
+                        WindowDetector.switch_to_ide()
+                    else:
+                        WindowDetector.switch_to_browser()rning(f"{monitor_type} monitor process ended unexpectedly")
+                break
+            
+            # Every 2 minutes, check if window context has changed
+            if time.time() - last_context_check > 120:
+                preferred = WindowDetector.get_preferred_monitor()
+                if preferred and preferred != monitor_type:
+                    logger.info(f"Window context changed to {'browser' if preferred == 'azure' else 'IDE'}, switching monitors...")
+                    break
+                last_context_check = time.time()
+            
+            # Sleep for 30 seconds before checking again
+            time.sleep(30)
         
-        while time.time() < end_time and not self.should_stop:
-            # Check if process is still running
-            if self.current_process.poll() is not None:
-                logger.warning(f"{monitor_type} monitor process ended unexpectedly")
+        # Stop the monitor
+        self.stop_current_monitor()
+        
+        elapsed = (time.time() - start_time) / 60
+        logger.info(f"Session completed ({elapsed:.1focess ended unexpectedly")
                 break
             
             # Sleep for 30 seconds before checking again
@@ -249,11 +392,11 @@ class MonitorScheduler:
                     remaining = break_duration * 60
                     while remaining > 0 and not self.should_stop:
                         sleep_time = min(60, remaining)
-                        time.sleep(sleep_time)
-                        remaining -= sleep_time
-                else:
-                    # Short pause between sessions (2-5 minutes)
-                    pause = random.randint(2, 5)
+                 Window-aware: Browser→Azure, IDE→GCP")
+    if testing_mode:
+        logger.info("TESTING MODE: 2-minute intervals")
+    else:
+        logger.info("Production mode: 30-90 minute sessions during work hour
                     logger.info(f"Brief pause ({pause} minutes) before next session")
                     time.sleep(pause * 60)
                 
